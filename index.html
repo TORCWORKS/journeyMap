@@ -94,7 +94,7 @@
   .workspace{flex:1;overflow:auto;position:relative;outline:none}
   .canvas{padding:30px 40px 80px;position:relative;width:max-content;min-width:100%}
   .grid{display:grid;grid-template-columns:var(--gutterw) repeat(var(--ncols),var(--colw));column-gap:14px;row-gap:10px;position:relative;align-items:start}
-  .edges{position:absolute;inset:0;pointer-events:none;z-index:1;overflow:visible}
+  .edges{position:absolute;left:0;top:0;pointer-events:none;z-index:0;overflow:visible}
 
   .colhead{
     display:flex;align-items:center;gap:7px;padding:8px 9px;border-radius:10px;
@@ -273,8 +273,9 @@
 
   <main id="workspace" class="workspace" tabindex="0">
     <div id="canvas" class="canvas">
-      <div id="grid" class="grid"></div>
-      <svg id="edges" class="edges"></svg>
+      <div id="grid" class="grid">
+        <svg id="edges" class="edges" aria-hidden="true"></svg>
+      </div>
     </div>
     <div id="empty" class="empty">
       <div class="wrap">
@@ -349,6 +350,7 @@ const $$=(s,el=document)=>[...el.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let _u=1; const uid=()=>'c'+(Date.now().toString(36))+(''+_u++);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const edgesSvg=document.getElementById('edges');   // connector layer — lives INSIDE #grid so it zooms with the cards
 let toastT=null;
 function toast(msg,ms=2200){
   const t=$('#toast'); t.textContent=msg; t.classList.add('show');
@@ -566,6 +568,7 @@ function renderAll(){
   const g=$('#grid');
   g.style.setProperty('--ncols',(state.doc.stages.length+1));
   g.innerHTML='';
+  g.appendChild(edgesSvg);                                                 // keep the connector layer as the first (bottom) child
   const spacer=document.createElement('div'); g.appendChild(spacer);       // gutter header
   state.doc.stages.forEach((st,idx)=>{ g.appendChild(stageHead(st,idx)); });
   g.appendChild(colAddEl());
@@ -630,40 +633,62 @@ function deleteSelection(){
 }
 
 /* ================= edges ================= */
+/* Connector geometry, shared by the live app and the PNG export.
+   Anchors sit exactly ON the card border and the curve leaves/enters perpendicular to it,
+   so a connection reads as attached to the cards instead of floating near them. */
+const EDGE_W=2.6, EDGE_A='cc', EDGE_HEAD=10, NUB_R=3.1;
+function edgeGeometry(a,b){
+  const acx=a.x+a.w/2, acy=a.y+a.h/2, bcx=b.x+b.w/2, bcy=b.y+b.h/2;
+  const dx=bcx-acx, dy=bcy-acy, horiz=Math.abs(dx)>=Math.abs(dy);
+  let s,e,so,eo;
+  if(horiz){                                   // mostly side-by-side → leave the side edges
+    s={x:dx>0?a.x+a.w:a.x, y:acy};
+    e={x:dx>0?b.x:b.x+b.w, y:bcy};
+    so={x:dx>0?1:-1,y:0}; eo={x:dx>0?-1:1,y:0};
+  } else {                                     // mostly stacked → leave the top/bottom edges
+    s={x:acx, y:dy>0?a.y+a.h:a.y};
+    e={x:bcx, y:dy>0?b.y:b.y+b.h};
+    so={x:0,y:dy>0?1:-1}; eo={x:0,y:dy>0?-1:1};
+  }
+  const dist=Math.hypot(e.x-s.x,e.y-s.y);
+  const k=Math.min(Math.max(dist*0.42,34),130);          // handle length, clamped so short hops stay tight
+  const c1={x:s.x+so.x*k,y:s.y+so.y*k}, c2={x:e.x+eo.x*k,y:e.y+eo.y*k};
+  return {d:'M'+s.x+' '+s.y+' C'+c1.x+' '+c1.y+', '+c2.x+' '+c2.y+', '+e.x+' '+e.y, s:s, e:e};
+}
+function edgeDefs(id){
+  // refX=10 → the arrow TIP lands exactly on the path end (i.e. on the card border);
+  // markerUnits=userSpaceOnUse → the head stays the same size regardless of stroke width.
+  return '<defs><marker id="'+id+'" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="'+EDGE_HEAD+'" markerHeight="'+EDGE_HEAD+'" markerUnits="userSpaceOnUse" orient="auto">'
+       + '<path d="M0.4,0.4 L10,5 L0.4,9.6 z" fill="context-stroke"/></marker></defs>';
+}
+function edgeMarkup(g,hex,id){
+  return '<path d="'+g.d+'" fill="none" stroke="'+hex+EDGE_A+'" stroke-width="'+EDGE_W+'" stroke-linecap="butt" marker-end="url(#'+id+')"/>'
+       + '<circle cx="'+g.s.x+'" cy="'+g.s.y+'" r="'+NUB_R+'" fill="'+hex+'" stroke="#fdfcfa" stroke-width="1.4"/>';
+}
 let edgeSched=null;
 function scheduleEdges(){ if(edgeSched) return; edgeSched=requestAnimationFrame(()=>{ edgeSched=null; renderEdges(); }); }
 function renderEdges(){
-  const svg=$('#edges'), grid=$('#grid');
-  if(!state.doc||!state.doc.edges||!state.doc.edges.length){ svg.setAttribute('width',0); svg.setAttribute('height',0); return; }
+  const grid=$('#grid');
+  const W=grid.scrollWidth||1, H=grid.scrollHeight||1;
+  edgesSvg.setAttribute('width',W); edgesSvg.setAttribute('height',H);
+  edgesSvg.style.width=W+'px'; edgesSvg.style.height=H+'px';
+  const edges=(state.doc&&state.doc.edges)||[];
+  if(!edges.length){ edgesSvg.innerHTML=''; return; }
   const gb=grid.getBoundingClientRect();
-  const W=grid.scrollWidth,H=grid.scrollHeight;
-  svg.setAttribute('width',W); svg.setAttribute('height',H);
-  svg.setAttribute('viewBox','0 0 '+W+' '+H);
-  const defs='<defs><marker id="arw" viewBox="0 0 10 10" refX="7.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>';
-  let h=defs;
+  // Fit-width uses CSS zoom: getBoundingClientRect() returns painted (zoomed) pixels while the
+  // SVG's user units are layout pixels — normalise by the live zoom ratio or every arrow floats.
+  const zr=(grid.offsetWidth?gb.width/grid.offsetWidth:1)||1;
+  const box=el=>{ const r=el.getBoundingClientRect();
+    return {x:(r.left-gb.left)/zr, y:(r.top-gb.top)/zr, w:r.width/zr, h:r.height/zr}; };
   const rowOf=id=>{ const c=state.doc.cards.find(x=>x.id===id); return c?c.row:'gap'; };
-  state.doc.edges.forEach(ed=>{
+  let h=edgeDefs('arw');
+  edges.forEach(ed=>{
     const aEl=$('.card[data-id="'+ed.from+'"]'), bEl=$('.card[data-id="'+ed.to+'"]');
     if(!aEl||!bEl) return;
-    const ar=aEl.getBoundingClientRect(), br=bEl.getBoundingClientRect();
-    const x1=ar.left-gb.left+ar.width/2, y1=ar.top-gb.top+ar.height;
-    const x2=br.left-gb.left+br.width/2, y2=br.top-gb.top;
-    let d, cx1=x1, cy1=y1, cx2=x2, cy2=y2;
-    if(br.top+br.height < ar.top){            // target above → start at left edge, end at right edge
-      const ax=ar.left-gb.left, ay=ar.top-gb.top+ar.height/2, bx=br.left-gb.left+br.width, by=br.top-gb.top+br.height/2;
-      d='M'+ax+' '+ay+' C'+(ax-80)+' '+ay+', '+(bx+80)+' '+by+', '+bx+' '+by; cx1=ax;cy1=ay;cx2=bx;cy2=by;
-    } else if(br.left < ar.left){             // target left → horizontal
-      const ax=ar.left-gb.left, ay=ar.top-gb.top+ar.height/2, bx=br.left-gb.left+br.width, by=br.top-gb.top+br.height/2;
-      d='M'+ax+' '+ay+' C'+(ax-80)+' '+ay+', '+(bx+80)+' '+by+', '+bx+' '+by; cx1=ax;cy1=ay;cx2=bx;cy2=by;
-    } else {
-      const dy=y2-y1;
-      cy1=y1+Math.max(58,dy/2); cy2=y2-Math.max(58,-dy/2);
-      d='M'+x1+' '+y1+' C'+x1+' '+cy1+', '+x2+' '+cy2+', '+x2+' '+y2;
-    }
-    const hex=ROWMAP[rowOf(ed.from)]?ROWMAP[rowOf(ed.from)].hex:'#999';
-    h+='<path d="'+d+'" fill="none" stroke="'+hex+'99" stroke-width="3" marker-end="url(#arw)" stroke-linecap="round"/>';
+    const hex=(ROWMAP[rowOf(ed.from)]||{}).hex||'#999';
+    h+=edgeMarkup(edgeGeometry(box(aEl),box(bEl)),hex,'arw');
   });
-  svg.innerHTML=h;
+  edgesSvg.innerHTML=h;
 }
 
 /* ================= drag ================= */
@@ -689,6 +714,7 @@ function onDragMove(e){
   }
   d.el.style.left=(e.clientX-d.offX)+'px';
   d.el.style.top=(e.clientY-d.offY)+'px';
+  scheduleEdges();                      // connectors follow the card live while dragging
   $$('.cell').forEach(c=>c.classList.remove('dragover'));
   const t=document.elementFromPoint(e.clientX,e.clientY);
   const cell=t&&t.closest('.cell');
@@ -975,7 +1001,7 @@ function buildExportSVG(){
   });
   const F="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif";
   let h='<svg xmlns="http://www.w3.org/2000/svg" width="'+(areaW*2)+'" height="'+(H*2)+'" viewBox="0 0 '+areaW+' '+H+'" font-family="'+F+'">';
-  h+='<defs><marker id="arwX" viewBox="0 0 10 10" refX="7.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>';
+  h+=edgeDefs('arwX');
   h+='<rect width="'+areaW+'" height="'+H+'" fill="#fbfaf7"/>';
   h+='<text x="'+pad+'" y="36" font-size="26" font-weight="750" fill="#26221b">'+esc(doc.title||'Donor journey')+'</text>';
   const today=new Date().toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
@@ -1007,13 +1033,9 @@ function buildExportSVG(){
     });
   });
   // ---- flow arrows
-  const edgePath=(a,b)=>{ const x1=a.x+a.w/2,y1=a.y+a.h,x2=b.x+b.w/2,y2=b.y;
-    if(b.y+b.h<a.y||b.x<a.x){ const ax=a.x,ay=a.y+a.h/2,bx=b.x+b.w,by=b.y+b.h/2; return 'M'+ax+' '+ay+' C'+(ax-80)+' '+ay+', '+(bx+80)+' '+by+', '+bx+' '+by; }
-    const dy=y2-y1,cy1=y1+Math.max(58,dy/2),cy2=y2-Math.max(58,-dy/2);
-    return 'M'+x1+' '+y1+' C'+x1+' '+cy1+', '+x2+' '+cy2+', '+x2+' '+y2; };
   (doc.edges||[]).forEach(ed=>{ const a=rects.get(ed.from), b=rects.get(ed.to); if(!a||!b) return;
     const c=doc.cards.find(x=>x.id===ed.from); const hex=((ROWMAP[c?c.row:'gap'])||{}).hex||'#999';
-    h+='<path d="'+edgePath(a,b)+'" fill="none" stroke="'+hex+'99" stroke-width="3" stroke-linecap="round" marker-end="url(#arwX)"/>';
+    h+=edgeMarkup(edgeGeometry(a,b),hex,'arwX');
   });
   // ---- cards
   recs.forEach(x=>{

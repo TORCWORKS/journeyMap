@@ -8,4 +8,6 @@ awk '/<script>/{f=1;next}/<\/script>/{f=0}f' index.html > /tmp/jm-verify.js
 node --check /tmp/jm-verify.js
 echo "→ E2E smoke test (playwright-core)"
 ( cd dev && node smoke.js )
+echo "→ Connector geometry (D-001)"
+( cd dev && node connectors.js )
 echo "✓ verify passed"
