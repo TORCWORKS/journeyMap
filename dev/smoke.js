@@ -88,6 +88,15 @@ function check(name, ok, detail) {
   await page.click('#kindSeg button[data-k="both"]'); await page.waitForTimeout(150);
   check('All filter restores everything', (await page.evaluate(() => document.querySelectorAll('.card').length)) === c0 + 1);
 
+  // D-005: editing is discoverable — click a card directly opens its editor
+  const n3 = await page.locator('.card').nth(2).boundingBox();
+  await page.mouse.click(n3.x + n3.width / 2, n3.y + 14);
+  await page.waitForTimeout(150);
+  check('clicking a card opens its editor', (await page.evaluate(() => document.getElementById('editor').style.display)) === 'flex');
+  await page.fill('#eTitle', 'Edited by click');
+  await page.keyboard.press('Enter'); await page.waitForTimeout(150);
+  check('direct editor save persists', (await page.evaluate(() => [...document.querySelectorAll('.card .ctitle')].some(t => t.textContent === 'Edited by click'))));
+
   const dlP = page.waitForEvent('download', { timeout: 8000 }).catch(() => null);
   await page.click('#btnPng');
   const dl = await dlP;
@@ -98,7 +107,7 @@ function check(name, ok, detail) {
   check('autosave restores on reload', (await cards()) === c0 + 1 && (await heads()) === 8, `cards=${await cards()} stages=${await heads()}`);
   check('no console/page errors', errors.length === 0, errors.join(' | ') || 'clean');
 
-  console.log(`\n${18 - failed}/18 smoke checks passed`);
+  console.log(`\n${20 - failed}/20 smoke checks passed`);
   await browser.close();
   process.exit(failed ? 1 : 0);
 })().catch(e => { console.error('FATAL', e); process.exit(1); });
