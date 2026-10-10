@@ -27,6 +27,7 @@
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
     background:var(--bg); color:var(--ink); overflow:hidden;
     -webkit-font-smoothing:antialiased;
+    display:flex; flex-direction:column; height:100vh;
   }
   ::selection{background:var(--accent);color:#fff}
 
@@ -189,22 +190,25 @@
 
   /* ---------- empty state ---------- */
   .empty{
-    position:absolute;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
+    position:absolute;inset:0;z-index:60;display:flex;
     background:radial-gradient(1200px 600px at 20% -10%, #eef4ec 0%, var(--bg) 55%);
     overflow:auto;
   }
-  .empty .wrap{max-width:660px;padding:40px;text-align:center}
+  /* margin:auto centres without the top-clipping trap that justify-content:center causes on overflow */
+  .empty .wrap{max-width:700px;padding:40px 24px;text-align:center;margin:auto}
   .empty .eyebrow{font-size:11px;font-weight:800;letter-spacing:.14em;color:var(--accent);margin-bottom:10px}
   .empty .tpllabel{font-size:12.5px;font-weight:700;color:#4d4638;margin-bottom:10px}
-  .empty h1{font-size:30px;letter-spacing:-.02em;font-weight:750}
+  .empty h1{font-size:28px;letter-spacing:-.02em;font-weight:750}
   .empty h1 em{font-style:normal;color:var(--accent)}
-  .empty p{color:var(--muted);font-size:14.5px;line-height:1.55;margin:10px auto 26px;max-width:460px}
+  .empty p{color:var(--muted);font-size:14px;line-height:1.5;margin:8px auto 20px;max-width:460px}
   .tplgrid{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
   .tpl{
-    width:196px;min-height:150px;padding:16px 14px;background:#fff;border:1px solid var(--line);border-radius:13px;
-    cursor:pointer;text-align:left;transition:all .14s;box-shadow:var(--shadow-s);display:flex;flex-direction:column;
+    width:200px;min-height:136px;padding:12px;background:#fff;border:1px solid var(--line);border-radius:13px;
+    cursor:pointer;text-align:left;transition:all .14s;box-shadow:var(--shadow-s);display:flex;flex-direction:column;gap:2px;
   }
-  .tpl .t-d{margin-top:auto}
+  .tpl .t-cat{font-size:9.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+  .tpl .t-ic{font-size:20px}
+  .tpl .t-d{margin-top:auto;font-size:11.5px;line-height:1.4}
   .tpl:hover{border-color:var(--accent);box-shadow:var(--shadow-m);transform:translateY(-2px)}
   .tpl .t-ic{font-size:22px;margin-bottom:8px}
   .tpl .t-n{font-size:13.5px;font-weight:700}
@@ -280,18 +284,13 @@
     <div id="empty" class="empty">
       <div class="wrap">
         <div class="eyebrow">START HERE</div>
-        <h1>Map your <em>donor journey</em> in minutes.</h1>
-        <p>Not a blank canvas, not a flat PDF. Start from a proven journey, then edit it to match how your donors actually move — stages left to right, each lane a layer of the experience.</p>
-        <div class="tpllabel">Pick a starting point</div>
-        <div class="tplgrid">
-          <div class="tpl" data-tpl="annual"><div class="t-ic">📬</div><div class="t-n">Annual fund</div><div class="t-d">Acquisition → retention → stewardship → lapse. The classic lifecycle.</div></div>
-          <div class="tpl" data-tpl="sustainer"><div class="t-ic">🔁</div><div class="t-n">Sustainer program</div><div class="t-d">From one-time giver to monthly supporter, and keeping them.</div></div>
-          <div class="tpl" data-tpl="major"><div class="t-ic">🤝</div><div class="t-n">Major gifts</div><div class="t-d">Moves-management: identify, qualify, cultivate, ask, steward.</div></div>
-          <div class="tpl" data-tpl="blank"><div class="t-ic">⬜</div><div class="t-n">Blank map</div><div class="t-d">Start from scratch — add your own stages and lanes.</div></div>
-        </div>
+        <h1>Map a <em>donor journey</em> your team owns.</h1>
+        <p>Start from the portfolio your staff actually run — annual giving, events, planned giving, corporate — then edit it to match how it really works. Stages left to right, each lane a layer of the experience, your recurring episodes built in.</p>
+        <div class="tpllabel">Pick the journey your team owns</div>
+        <div id="tplGrid" class="tplgrid" style="justify-content:center"></div>
         <div class="steps">
-          <div><b>1 · Add a stage</b>Lifecycle phases, left → right</div>
-          <div><b>2 · Fill the lanes</b>What donors feel, see, and you do</div>
+          <div><b>1 · Pick a portfolio</b>A proven starting map, easily edited</div>
+          <div><b>2 · Make it yours</b>Cards, stages, lanes — your reality</div>
           <div><b>3 · Export</b>Board-ready PNG or print-to-PDF</div>
         </div>
       </div>
@@ -315,11 +314,8 @@
   </div>
 
   <div id="tplMenu" class="backdrop" style="display:none;z-index:95;align-items:flex-start;background:transparent">
-    <div class="modal" style="width:260px;padding:10px">
-      <button class="tpl" data-tpl="annual" style="width:100%;border:none;border-bottom:1px solid var(--line);border-radius:0;padding:10px 8px">📬 Annual fund</button>
-      <button class="tpl" data-tpl="sustainer" style="width:100%;border:none;border-bottom:1px solid var(--line);border-radius:0;padding:10px 8px">🔁 Sustainer program</button>
-      <button class="tpl" data-tpl="major" style="width:100%;border:none;border-bottom:1px solid var(--line);border-radius:0;padding:10px 8px">🤝 Major gifts</button>
-      <button class="tpl" data-tpl="blank" style="width:100%;border:none;border-radius:0;padding:10px 8px">⬜ Blank map</button>
+    <div class="modal" style="width:280px;padding:10px">
+      <div id="tplItems"></div>
       <button id="tplClear" style="width:100%;background:none;border:none;color:var(--rose);font-size:12.5px;font-weight:600;padding:10px 8px;cursor:pointer">Clear everything…</button>
     </div>
   </div>
@@ -357,20 +353,41 @@ function toast(msg,ms=2200){
   clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),ms);
 }
 
-/* ================= lanes ================= */
-const ROWS=[
+/* ================= lanes (per document) ================= */
+const DEFAULT_ROWS=[
   {id:'exp',name:'Donor experience',v:'var(--r-exp)',hex:'#e97f4c'},
   {id:'ch', name:'Channels & touchpoints',v:'var(--r-ch)',hex:'#5b8ec9'},
   {id:'act',name:'Org actions',v:'var(--r-act)',hex:'#4f9d6d'},
   {id:'gap',name:'Gaps & opportunities',v:'var(--r-gap)',hex:'#c25353'},
 ];
-const ROWMAP=Object.fromEntries(ROWS.map(r=>[r.id,r]));
+const DEFAULT_ROW_IDS=DEFAULT_ROWS.map(r=>r.id);
+function ensureRows(doc){
+  // Idempotent + in-place: NEVER reassigns an already-valid doc.rows with copies —
+  // the lane chips close over these objects, so copies would detach their state.
+  if(!doc) return [];
+  if(!Array.isArray(doc.rows)||!doc.rows.length){
+    doc.rows=DEFAULT_ROWS.map(r=>({...r,visible:true}));
+  } else {
+    doc.rows.forEach(r=>{ if(r.visible===undefined) r.visible=true; });
+  }
+  return doc.rows;
+}
+function getRow(id){
+  const r=state.doc&&state.doc.rows&&state.doc.rows.find(x=>x.id===id);
+  if(r) return r;
+  return DEFAULT_ROWS.find(x=>x.id===id)||{id:id||'x',name:id||'Lane',v:'#999',hex:'#999'};
+}
 
 /* ================= templates ================= */
 function mkCards(stages,defs){ return defs.map(d=>({id:uid(),stage:stages[d.s].id,row:d.row,title:d.title,note:d.note})); }
-function TPL_annual(){ const st=[
-  {id:uid(),name:'Awareness'},{id:uid(),name:'First gift'},{id:uid(),name:'Second gift'},{id:uid(),name:'Sustainer path'},{id:uid(),name:'Stewardship'},{id:uid(),name:'At risk'},{id:uid(),name:'Lapsed'}];
-  return {title:'Annual fund — donor journey',stages:st,cards:mkCards(st,[
+const EPS={id:'eps',name:'Recurring episodes',v:'#8a7db5',hex:'#8a7db5'};
+const BASE4=()=>DEFAULT_ROWS.map(r=>({...r}));
+
+function TPL_annual_giving(){
+  const st=[
+    {id:uid(),name:'Awareness'},{id:uid(),name:'First gift'},{id:uid(),name:'Second gift'},{id:uid(),name:'Sustainer path'},{id:uid(),name:'Stewardship'},{id:uid(),name:'At risk'},{id:uid(),name:'Lapsed'}];
+  return {title:'Annual giving — donor journey',stages:st,rows:[...BASE4(),{...EPS,name:'Recurring episodes'}],
+    cards:mkCards(st,[
     {s:0,row:'exp',title:'First hears about us',note:'Community event, a friend\'s share, or social ad. The first impression decides the rest.'},
     {s:0,row:'ch',title:'Event booth · social · peer referral',note:'No single dominant channel yet. Source tracking matters from day one.'},
     {s:0,row:'gap',title:'First-touch source is untracked',note:'If we can\'t say where new names come from, we can\'t double down on what works.'},
@@ -398,76 +415,250 @@ function TPL_annual(){ const st=[
     {s:6,row:'ch',title:'Year-end appeal · events',note:'The cheapest win in fundraising is a warm name, not a cold one.'},
     {s:6,row:'act',title:'Segment + re-engage at year-end',note:'Personal, truthful, specific. One ask at the right moment.'},
     {s:6,row:'gap',title:'No win-back ladder',note:'One appeal a year leaves most recoverable value on the table.'},
+    {s:1,row:'eps',title:'Year-end appeal (Nov–Dec)',note:'The big acquisition and sustainer-conversion moment. Weekly list pulls from gift data.'},
+    {s:1,row:'eps',title:'Giving Tuesday (Dec)',note:'Fast, social, low-cost. A good testing ground for first-gift wording.'},
+    {s:2,row:'eps',title:'Spring appeal (Apr)',note:'The second-gift moment. Pair with an impact story, not a budget line.'},
+    {s:4,row:'eps',title:'Quarterly e-news + impact report',note:'Stewardship fuel between asks. Consistent, visual, specific.'},
+    {s:6,row:'eps',title:'Lapsed win-back push (mid-year)',note:'One segment, one story, one clear reason to return.'},
   ])};
 }
-function TPL_sustainer(){ const st=[
-  {id:uid(),name:'Acquisition'},{id:uid(),name:'Activation'},{id:uid(),name:'Active sustainer'},{id:uid(),name:'Deepening'},{id:uid(),name:'At risk'},{id:uid(),name:'Lapsed'},{id:uid(),name:'Reactivation'}];
-  return {title:'Sustainer program — donor journey',stages:st,cards:mkCards(st,[
-    {s:0,row:'exp',title:'One-time giver, promising signals',note:'Frequent small gifts, event attendance, email opens.'},
-    {s:0,row:'ch',title:'Appeals · events · social',note:'Keep the touchpoints warm and consistent.'},
-    {s:0,row:'act',title:'Identify sustainer candidates',note:'Score by recency + frequency + engagement.'},
-    {s:1,row:'exp',title:'Asked at the moment of max intent',note:'The second gift is the window. The ask must arrive inside it.'},
-    {s:1,row:'ch',title:'One-click monthly conversion page',note:'Silent, no friction, no annual-contract scare.'},
-    {s:1,row:'act',title:'Conversion ask at second gift',note:'“Give a gift every month” — not “become a sustainer”.'},
-    {s:1,row:'gap',title:'No conversion ask exists',note:'Intent peaks and decays without being captured.'},
-    {s:2,row:'exp',title:'Habit forming — needs ritual',note:'The monthly charge is a heartbeat. Feed the relationship.'},
-    {s:2,row:'ch',title:'Monthly impact note',note:'Short, visual, specific. Every month without fail.'},
-    {s:2,row:'act',title:'Onboard + communicate value',note:'Tell them what their $25/mo does, in one person\'s story.'},
-    {s:3,row:'exp',title:'Deepens — asks about legacy',note:'Long-term sustainers are planned-giving prospects.'},
-    {s:3,row:'ch',title:'Sustainer-only updates · member event',note:'Community and exclusivity raise retention.'},
-    {s:3,row:'act',title:'Upgrade ask and legacy conversation',note:'Month 9–12: increase, or leave a legacy.'},
-    {s:3,row:'gap',title:'No legacy conversation',note:'The highest-LTV donor is never asked about planned giving.'},
-    {s:4,row:'exp',title:'Quiet — shares dip',note:'Missed a payment? Sad-story fatigue? Member disconnect?'},
-    {s:4,row:'ch',title:'Win-back email at first miss',note:'Gentle, personal, immediate.'},
-    {s:4,row:'act',title:'Auto-flag payment failure',note:'Recover within 7 days — the money is still warm.'},
-    {s:5,row:'exp',title:'Canceled',note:'Leaves with a reason we should have heard.'},
-    {s:5,row:'ch',title:'Exit survey',note:'One question: what changed?'},
-    {s:5,row:'act',title:'Log the reason against the record',note:'Feeds better asking and better timing.'},
-    {s:5,row:'gap',title:'No exit survey today',note:'We lose sustainers silently and learn nothing.'},
-    {s:6,row:'exp',title:'Returnable — one big story away',note:'A mission moment can revive a lapsed sustainer.'},
-    {s:6,row:'ch',title:'Re-join offer with honor',note:'“Welcome back — here\'s what changed while you were away.”'},
-    {s:6,row:'act',title:'Sustainer re-join campaign',note:'Segment lapsed sustainers at year-end.'},
+function TPL_change_makers(){
+  const st=[
+    {id:uid(),name:'Discover'},{id:uid(),name:'Start fundraising'},{id:uid(),name:'Mobilize (ask the network)'},{id:uid(),name:'Donations flow'},{id:uid(),name:'Impact & thanks'},{id:uid(),name:'Retain for next year'}];
+  return {title:'Change Makers — peer-to-peer',stages:st,rows:[...BASE4(),{...EPS,name:'Campaign calendar'}],
+    cards:mkCards(st,[
+    {s:0,row:'exp',title:'Inspired by a participant\'s story',note:'Or invited by a friend mid-campaign. The story is the hook, not the cause page.'},
+    {s:0,row:'ch',title:'Friend\'s page · social share · launch posts',note:'Peer-to-peer grows along real relationships — design for that.'},
+    {s:0,row:'act',title:'Easy “start fundraising” CTA everywhere',note:'On every page, every email, every receipt. Personal URL in seconds.'},
+    {s:0,row:'gap',title:'No way to join mid-campaign',note:'Registration is a one-shot window. Latecomers are our best warm audience.'},
+    {s:1,row:'exp',title:'Sets a goal and tells their story',note:'The first ask is their own. A clear “why” beats a pretty template.'},
+    {s:1,row:'ch',title:'Signup · page builder · first-donation email',note:'The moment they make their own first gift to their own page.'},
+    {s:1,row:'act',title:'60-minute coached setup',note:'Story, photo, goal number. Coaching doubles outcomes.'},
+    {s:1,row:'gap',title:'Template wall — pages all look alike',note:'Weak storytelling makes every page sound the same.'},
+    {s:2,row:'exp',title:'Asks friends and family',note:'Feels personal and slightly awkward. The ask support decides success.'},
+    {s:2,row:'ch',title:'Email + social ask tools · WhatsApp',note:'Share-ready asks in one tap. Pre-written, personalizable.'},
+    {s:2,row:'act',title:'Weekly coaching: ask scripts, milestones',note:'“You\'re at 40% — three more asks.” Momentum keeps pages alive.'},
+    {s:2,row:'gap',title:'No ask kits for shy fundraisers',note:'The people who need help the most get it the least.'},
+    {s:3,row:'exp',title:'Watches the thermometer rise',note:'Momentum is the fuel. Leaderboards and matching keep it burning.'},
+    {s:3,row:'ch',title:'Donation page · leaderboard · match moment',note:'Every donation is a thank-you in the feed — a loop, not a one-off.'},
+    {s:3,row:'act',title:'Match announcement mid-campaign',note:'A timed match doubles response. Right now = now or never.'},
+    {s:3,row:'gap',title:'Page donors aren\'t captured to our base',note:'People who gave to a friend\'s page should land in our CRM as donors.'},
+    {s:4,row:'exp',title:'Proud — sees what the money did',note:'The finish line is when the relationship could start.'},
+    {s:4,row:'ch',title:'Campaign results + impact story',note:'Photo of the outcome, name credits for top fundraisers.'},
+    {s:4,row:'act',title:'Personal thank-you video',note:'From a beneficiary or the ED. 24–48 hours after the finish.'},
+    {s:4,row:'gap',title:'Post-campaign silence',note:'Momentum dies at the finish line. The warmest moment goes unused.'},
+    {s:5,row:'exp',title:'“You\'re part of this now”',note:'Invited back — as a fundraiser, donor, or monthly giver.'},
+    {s:5,row:'ch',title:'Next-year re-recruit · donor newsletter',note:'Alumni fundraisers are the cheapest acquisition we have.'},
+    {s:5,row:'act',title:'Convert top fundraisers to donors',note:'A personal ask, not a broadcast. They\'ve already done the cultivation.'},
+    {s:5,row:'gap',title:'Top fundraisers never asked to give personally',note:'The people who raise the most are rarely in our donor program.'},
+    {s:0,row:'eps',title:'Launch (Wk 0)',note:'Announce, seed pages from last year\'s alumni, open registration.'},
+    {s:2,row:'eps',title:'Mid-campaign match + leaderboard push',note:'The momentum spike that carries pages to their goals.'},
+    {s:5,row:'eps',title:'Alumni open (post-campaign)',note:'Ask-again window for last year\'s fundraisers — before they cool off.'},
   ])};
 }
-function TPL_major(){ const st=[
-  {id:uid(),name:'Identification'},{id:uid(),name:'Qualification'},{id:uid(),name:'Cultivation'},{id:uid(),name:'Solicitation'},{id:uid(),name:'Stewardship'},{id:uid(),name:'Inactive'}];
-  return {title:'Major gifts — moves management',stages:st,cards:mkCards(st,[
-    {s:0,row:'exp',title:'Gives $1k+, attends events, has capacity',note:'Signals: sustained giving, event presence, board/community networks.'},
-    {s:0,row:'ch',title:'Annual report · event sponsors · networks',note:'Where the names come from before they are names.'},
-    {s:0,row:'act',title:'Screening: capacity + affinity + linkage',note:'The classic triad. Score, rank, and assign a portfolio.'},
-    {s:0,row:'gap',title:'No systematic screening',note:'Major prospects are discovered by accident, not by design.'},
-    {s:1,row:'exp',title:'Asks: “what would my money actually do?”',note:'Curiosity or caution — either way, a conversation must follow.'},
-    {s:1,row:'ch',title:'Portfolio conversations',note:'Feasibility first, ask later. Listen twice as much.'},
-    {s:1,row:'act',title:'Qualifying questions: interest, capacity, timing, connectors',note:'Four answers decide the next move. Two meetings is the budget.'},
+function TPL_signature_events(){
+  const st=[
+    {id:uid(),name:'Discovery'},{id:uid(),name:'Invitation'},{id:uid(),name:'Registration & tables'},{id:uid(),name:'The event'},{id:uid(),name:'Post-event'},{id:uid(),name:'Retention'}];
+  return {title:'Signature event — donor journey',stages:st,rows:[
+    {id:'exp',name:'Attendee experience',v:'var(--r-exp)',hex:'#e97f4c'},{id:'ch',name:'Touchpoints',v:'var(--r-ch)',hex:'#5b8ec9'},
+    {id:'act',name:'Org actions',v:'var(--r-act)',hex:'#4f9d6d'},{id:'gap',name:'Gaps & opportunities',v:'var(--r-gap)',hex:'#c25353'},
+    {...EPS,name:'Annual cycle'}],
+    cards:mkCards(st,[
+    {s:0,row:'exp',title:'Hears about “the big night”',note:'Reputation precedes the event. Who they sit with is half the product.'},
+    {s:0,row:'ch',title:'Board & committee mentions · past guests',note:'The guest list is built on relationships, not ads.'},
+    {s:0,row:'act',title:'Guest-list strategy',note:'Who can give, influence, or buy a table. Target the trios.'},
+    {s:0,row:'gap',title:'Guest list assembled from memory',note:'Not from data. The people who attended last time aren\'t chased.'},
+    {s:1,row:'exp',title:'A personal invitation',note:'Hard to ignore, flattering, specific.'},
+    {s:1,row:'ch',title:'Email + printed invite · host outreach',note:'The committee does the warm outreach; the office does the logistics.'},
+    {s:1,row:'act',title:'Host committee asks 5 each',note:'VIPs and CEOs get a personal call from the ED or board chair.'},
+    {s:1,row:'gap',title:'No deadline psychology',note:'Invites drift to event week, wrecking seating and guarantees.'},
+    {s:2,row:'exp',title:'Buying a ticket is a moment of intent',note:'The strongest “yes” of the year for most attendees.'},
+    {s:2,row:'ch',title:'Event site · table-buyer portal',note:'Fast checkout, real-time table map, instant receipt.'},
+    {s:2,row:'act',title:'Auto email series post-purchase',note:'What to expect, how to prepare, sponsorship upsell pushed early.'},
+    {s:2,row:'gap',title:'Attendee names rarely flow to the CRM',note:'The registration list is the year\'s biggest data gift — and it leaks.'},
+    {s:3,row:'exp',title:'The night itself',note:'An experience donors remember for a decade — or forget by Monday.'},
+    {s:3,row:'ch',title:'Auction · impact stories · the ask moment',note:'The ask lands in the emotional peak, with the stories to arm it.'},
+    {s:3,row:'act',title:'On-site ask + QR giving',note:'Paddles, QR codes, and instant donations before the night ends.'},
+    {s:3,row:'gap',title:'One-time attendees never become donors',note:'The audience is warm, the follow-up is cold, and the window closes.'},
+    {s:4,row:'exp',title:'The 72 hours after',note:'Emotional tail. Gratitude and pictures decide the memory.'},
+    {s:4,row:'ch',title:'Thank-you + photo recap',note:'Fast, personal, visual. Tag them; they\'ll share.'},
+    {s:4,row:'act',title:'48-hour thank-you with impact',note:'Then convert: attendees → donors, one clear invitation.'},
+    {s:4,row:'gap',title:'No post-event ask journey at all',note:'The event is treated as the end, not the beginning.'},
+    {s:5,row:'exp',title:'“We\'d come again — and bring friends”',note:'A great night compounds into next year\'s guest list.'},
+    {s:5,row:'ch',title:'Save-the-date · waitlist',note:'Turn this year\'s buzz into next year\'s demand.'},
+    {s:5,row:'act',title:'Waitlist + upsell ladder',note:'Guest → table → table host → sponsor. A staged path.'},
+    {s:5,row:'gap',title:'No multi-year path for attendees',note:'Every tier change is a relationship move no one owns.'},
+    {s:0,row:'eps',title:'Save-the-date (4 months out)',note:'Momentum starts before tickets exist.'},
+    {s:1,row:'eps',title:'Invitation wave (6 weeks out)',note:'Committee, then VIPs, then general — in that order.'},
+    {s:4,row:'eps',title:'Thank-you + recap (72 hours)',note:'The memory-forming window.'},
+    {s:5,row:'eps',title:'Post-event luncheon (6 weeks later)',note:'Where last year\'s guests become next year\'s table hosts.'},
+  ])};
+}
+function TPL_community_events(){
+  const st=[
+    {id:uid(),name:'Outreach'},{id:uid(),name:'Registration'},{id:uid(),name:'Attendance'},{id:uid(),name:'Conversion'},{id:uid(),name:'Follow-up'}];
+  return {title:'Community events — donor journey',stages:st,rows:BASE4(),
+    cards:mkCards(st,[
+    {s:0,row:'exp',title:'Sees it as a good day out',note:'Low commitment, high familiarity. A door in for the whole family.'},
+    {s:0,row:'ch',title:'Posters · local groups · social · schools',note:'Local word-of-mouth does the heavy lifting.'},
+    {s:0,row:'act',title:'Outreach to schools, faith and community groups',note:'Free or low-cost entry lowers every barrier.'},
+    {s:0,row:'gap',title:'No way to capture who\'s interested',note:'Interest dies without a followable record.'},
+    {s:1,row:'exp',title:'Signs up in under a minute',note:'Friction decides attendance more than promotion does.'},
+    {s:1,row:'ch',title:'Simple event page · QR at point of interest',note:'Registration should live where the attention is.'},
+    {s:1,row:'act',title:'Waiver + reminder sequence',note:'Two reminders lift attendance, not one.'},
+    {s:1,row:'gap',title:'No email capture at registration',note:'The only ask usually on the table is attendance itself.'},
+    {s:2,row:'exp',title:'Shows up, has a good time',note:'The experience is the pitch. Volunteers and staff are the warmth.'},
+    {s:2,row:'ch',title:'Check-in · activity · table with a story',note:'A well-placed impact table turns an afternoon into curiosity.'},
+    {s:2,row:'act',title:'A quiet ask moment',note:'The story table, a small gift ask, a sign-up sheet.'},
+    {s:2,row:'gap',title:'Attendance not tied to any record',note:'We know they came — and then we don\'t know them.'},
+    {s:3,row:'exp',title:'Warmed by the day, open to next steps',note:'The conversion window is days, not months.'},
+    {s:3,row:'ch',title:'Email with photos + one clear next step',note:'Newsletter, a small gift, or the next event.'},
+    {s:3,row:'act',title:'48-hour follow-up with a specific ask',note:'“Join the newsletter” is the smallest win that compounds.'},
+    {s:3,row:'gap',title:'No conversion pathway',note:'The follow-up is a generic thank-you, not a next step.'},
+    {s:4,row:'exp',title:'Invited by name next time',note:'Being remembered is the difference between events and community.'},
+    {s:4,row:'ch',title:'Next-event invite · community newsletter',note:'Warm lists beat cold outreach every season.'},
+    {s:4,row:'act',title:'Track returners',note:'Second-time attendees are the gift pipeline of tomorrow.'},
+    {s:4,row:'gap',title:'No segmentation of attendees',note:'Families, volunteers, and donors all get the same email.'},
+  ])};
+}
+function TPL_planned_giving(){
+  const st=[
+    {id:uid(),name:'Awareness'},{id:uid(),name:'Bequest intent'},{id:uid(),name:'Conversation'},{id:uid(),name:'Documentation'},{id:uid(),name:'Notification'},{id:uid(),name:'Recognition'}];
+  return {title:'Planned giving — legacy journey',stages:st,rows:BASE4(),
+    cards:mkCards(st,[
+    {s:0,row:'exp',title:'Long-time donor — loyalty without a plan',note:'Supports the mission, has never connected it to their estate.'},
+    {s:0,row:'ch',title:'Website legacy page · donor stories',note:'Real legacy donors told well make the idea normal.'},
+    {s:0,row:'act',title:'Mention legacies naturally',note:'In impact reports and thank-yous — a sentence, not a pitch.'},
+    {s:0,row:'gap',title:'We never talk about legacies',note:'It\'s everyone\'s “someday”. The someday never asks itself.'},
+    {s:1,row:'exp',title:'A life moment opens the door',note:'Estate planning, a child\'s milestone, a health event — timing is everything.'},
+    {s:1,row:'ch',title:'A visit or event conversation',note:'The moment they hint, someone must catch it.'},
+    {s:1,row:'act',title:'“Many donors include us in their will”',note:'Normalize it, then ask if they\'d like to know more.'},
+    {s:1,row:'gap',title:'No private way to signal interest',note:'Some donors want to raise their hand without a meeting.'},
+    {s:2,row:'exp',title:'Wants it simple, legal, revocable',note:'Fear of commitment is the real obstacle — reassurance is the work.'},
+    {s:2,row:'ch',title:'Intro to the planned-giving officer',note:'A specialist conversation, not an annual-fund one.'},
+    {s:2,row:'act',title:'Sample will language + advisor partnership',note:'Their lawyer, our language. Non-binding, always revocable.'},
+    {s:2,row:'gap',title:'Officer capacity',note:'Conversations take months; there are more doors than officers.'},
+    {s:3,row:'exp',title:'Fills the form, tells the family',note:'The paperwork is emotional. Done with them, not to them.'},
+    {s:3,row:'ch',title:'Bequest form · advisor letter',note:'Every step documented so nothing depends on memory.'},
+    {s:3,row:'act',title:'Confirm + thank immediately',note:'The moment of documentation is the moment of gratitude.'},
+    {s:3,row:'gap',title:'No tracking of notices received',note:'Notices arrive unseen and land nowhere in the CRM.'},
+    {s:4,row:'exp',title:'Family notifies — handled with care',note:'A delicate moment. Dignity and timing are the whole job.'},
+    {s:4,row:'ch',title:'Personal call with the executor',note:'In person or by phone — never by letter.'},
+    {s:4,row:'act',title:'Handle with dignity',note:'Family wishes, burial timing, gratitude without pressure.'},
+    {s:4,row:'gap',title:'Underscaffolded process',note:'The most fragile moment has the least process behind it.'},
+    {s:5,row:'exp',title:'Sees their name among people like them',note:'Recognition that is warm, tasteful, and wanted.'},
+    {s:5,row:'ch',title:'Legacy society · recognition wall',note:'Public thanks with their permission. Quiet thanks goes private for those who prefer it.'},
+    {s:5,row:'act',title:'Legacy society benefits + stewardship',note:'A lasting relationship, not a closing ceremony.'},
+    {s:5,row:'gap',title:'Legacy donors never cultivated further',note:'The most aligned supporters are never invited to give again.'},
+  ])};
+}
+function TPL_corporate(){
+  const st=[
+    {id:uid(),name:'Identify'},{id:uid(),name:'Research & approach'},{id:uid(),name:'Proposal'},{id:uid(),name:'Negotiation'},{id:uid(),name:'Activation'},{id:uid(),name:'Renewal'}];
+  return {title:'Corporate sponsorship — partner journey',stages:st,rows:[
+    {id:'exp',name:'Partner experience',v:'var(--r-exp)',hex:'#e97f4c'},{id:'ch',name:'Documents & touchpoints',v:'var(--r-ch)',hex:'#5b8ec9'},
+    {id:'act',name:'Org actions',v:'var(--r-act)',hex:'#4f9d6d'},{id:'gap',name:'Gaps & opportunities',v:'var(--r-gap)',hex:'#c25353'},
+    {...EPS,name:'Renewal cycle'}],
+    cards:mkCards(st,[
+    {s:0,row:'exp',title:'A company whose brand aligns',note:'Mission adjacency matters — they want to look right next to the cause.'},
+    {s:0,row:'ch',title:'Board connections · local businesses',note:'Warm intros double close rates. Cold outreach is the fallback.'},
+    {s:0,row:'act',title:'Approach via board or partner',note:'“Trusted introducer” beats any brochure.'},
+    {s:0,row:'gap',title:'Prospect list is a folder, not a pipeline',note:'No tiers, no owners, no next touch date.'},
+    {s:1,row:'exp',title:'Cares about visibility + community impact',note:'Corporate giving has goals too: employees, brand, customers.'},
+    {s:1,row:'ch',title:'Annual report · CSR priorities · past sponsorships',note:'Read their giving pattern before you write your ask.'},
+    {s:1,row:'act',title:'Match the ask to THEIR goals',note:'Employee engagement, branded moment, family day — find the fit.'},
+    {s:1,row:'gap',title:'We pitch what we need, not what they want',note:'The ask is a wish list, not a partnership proposition.'},
+    {s:2,row:'exp',title:'Wants one page: what, why, what\'s in it',note:'Clarity and self-respect. Who is the audience, where is the logo.'},
+    {s:2,row:'ch',title:'Partnership one-pager · benefit menu',note:'Options, not a single invented package.'},
+    {s:2,row:'act',title:'Tiered packages',note:'Naming, tables, logo placement, employee perks — priced and menu\'d.'},
+    {s:2,row:'gap',title:'Every ask built from scratch',note:'No standard menu means no repeatable sales motion.'},
+    {s:3,row:'exp',title:'Wants the win to feel mutual',note:'Negotiation is relationship work, not deal work.'},
+    {s:3,row:'ch',title:'Meeting with the decision-maker',note:'Go in with options, leave with a decision date.'},
+    {s:3,row:'act',title:'Trade flexibility for multi-year',note:'A two-year commitment is worth more than a better single year.'},
+    {s:3,row:'gap',title:'No renewal framing until the contract expires',note:'Renewal is a surprise instead of a plan.'},
+    {s:4,row:'exp',title:'Sees the partnership come alive',note:'Activation is the contract\'s real test. Photos, mentions, experiences.'},
+    {s:4,row:'ch',title:'On-site branding · employee event · impact report',note:'Deliver every promised benefit, visibly and on time.'},
+    {s:4,row:'act',title:'Deliver + document everything',note:'The evidence file is next year\'s renewal pitch.'},
+    {s:4,row:'gap',title:'Benefits delivered lazily',note:'Partnerships die in activation, not in negotiation.'},
+    {s:5,row:'exp',title:'Reflects on a visible, felt partnership',note:'Impact they can report to their own board.'},
+    {s:5,row:'ch',title:'Renewal ask with proof',note:'Show the receipts: reach, impact, employee stories.'},
+    {s:5,row:'act',title:'Ask to expand',note:'Multi-year, higher tier, board representation.'},
+    {s:5,row:'gap',title:'No account plan',note:'Renewal depends on who remembers to call.'},
+    {s:1,row:'eps',title:'Leadership check-in (Q1)',note:'Board/ED face-time with top sponsors — the relationship layer.'},
+    {s:5,row:'eps',title:'Impact report to sponsor (Q3)',note:'Proof package: reach, photos, employee stories — before any renewal ask.'},
+    {s:5,row:'eps',title:'Renewal ask with proof (Q4)',note:'Reopen with the evidence file, not a blank invoice.'},
+    {s:5,row:'eps',title:'Next-cycle upsell (mid-year)',note:'Higher tier, multi-year, or an employee-engagement add-on.'},
+  ])};
+}
+function TPL_leadership(){
+  const st=[
+    {id:uid(),name:'Identify'},{id:uid(),name:'Qualify'},{id:uid(),name:'Cultivate'},{id:uid(),name:'Ask'},{id:uid(),name:'Steward'},{id:uid(),name:'Expand'}];
+  return {title:'Leadership giving — major gifts journey',stages:st,rows:BASE4(),
+    cards:mkCards(st,[
+    {s:0,row:'exp',title:'Gives $500+; attends events; clear capacity',note:'The leadership file is hiding in plain sight in our own records.'},
+    {s:0,row:'ch',title:'Donor records · event attendance · board networks',note:'Where the names come from before they are names.'},
+    {s:0,row:'act',title:'Screen by capacity + affinity; assign a portfolio',note:'The classic triad scored and ranked. Every name has an owner.'},
+    {s:0,row:'gap',title:'No systematic screening',note:'Leadership prospects are found by accident, not by design.'},
+    {s:1,row:'exp',title:'Asks “what would my money actually do?”',note:'Curiosity or caution — either way, a conversation must follow.'},
+    {s:1,row:'ch',title:'Portfolio conversations',note:'Listen twice as much as you talk. Feasibility first.'},
+    {s:1,row:'act',title:'Qualify: interest, capacity, timing, connectors',note:'Four answers decide the next move. Two meetings is the budget.'},
     {s:1,row:'gap',title:'Qualification backlog',note:'Questions sit unanswered while momentum cools.'},
-    {s:2,row:'exp',title:'Getting to know the work — and being known',note:'Trust is cultivated, not asked for. No-ask visits are the work of this stage.'},
-    {s:2,row:'ch',title:'Site visit · lunch with ED · tailored impact report',note:'Genuine experiences, not brochures.'},
+    {s:2,row:'exp',title:'Gets to know the work — and is known',note:'Trust is cultivated, not asked for. No-ask visits are this stage\'s work.'},
+    {s:2,row:'ch',title:'Site visit · lunch with ED · tailored updates',note:'Genuine experiences, not brochures.'},
     {s:2,row:'act',title:'Engagement plan: ~3 touchpoints/year, zero asks',note:'A written cadence survives staff change and busy weeks.'},
-    {s:2,row:'gap',title:'No cultivation cadence',note:'Cultivation happens when someone remembers — usually the week of the ask.'},
-    {s:3,row:'exp',title:'The ask feels honest; the number is specific',note:'Clarity beats pressure. They want to be asked well.'},
-    {s:3,row:'ch',title:'Proposal + case for support',note:'The case is one page, the vision is one sentence.'},
+    {s:2,row:'gap',title:'No cultivation cadence',note:'Cultivation happens the week of the ask — and it shows.'},
+    {s:3,row:'exp',title:'A specific number, an honest case',note:'Clarity beats pressure. They want to be asked well.'},
+    {s:3,row:'ch',title:'One-page case · peer messenger',note:'The case fits one page; the vision fits one sentence.'},
     {s:3,row:'act',title:'Right messenger, right moment',note:'Peer or ED. Announce gifts loudly, ask quietly.'},
-    {s:3,row:'gap',title:'No planned-giving conversation',note:'Endowment and legacy asks never make it into the solicitation.'},
-    {s:4,row:'exp',title:'Recognition without awkwardness',note:'Gratitude that is specific, timely, and unhurried.'},
-    {s:4,row:'ch',title:'Naming · private updates · thank-you visit',note:'Personal channels the annual fund never touches.'},
-    {s:4,row:'act',title:'Thank within 48h; impact report at 30 days',note:'The pledge period is the relationship\'s most fragile stretch.'},
-    {s:4,row:'gap',title:'Stewardship ends with the pledge',note:'After the final payment, the relationship goes dormant.'},
-    {s:5,row:'exp',title:'Relationship cooled',note:'Not a loss — a pause. They will return for the right moment.'},
-    {s:5,row:'ch',title:'Annual touch',note:'One genuine update a year keeps the door open.'},
-    {s:5,row:'act',title:'Reviver with real news',note:'Institutional milestones, not asks. Gate the portfolio thoughtfully.'},
-    {s:5,row:'gap',title:'No owner of the inactive portfolio',note:'Every lapsed major donor is next year\'s campaign volunteer.'},
+    {s:3,row:'gap',title:'No planned-giving conversation',note:'The biggest gifts are willed, and we never ask.'},
+    {s:4,row:'exp',title:'Sees impact; feels valued',note:'Gratitude that is specific, timely, and unhurried.'},
+    {s:4,row:'ch',title:'Private updates · thank-you call',note:'Channels the annual fund never touches.'},
+    {s:4,row:'act',title:'Thank within 48h; impact at 30 days',note:'The early months after a gift are the most fragile.'},
+    {s:4,row:'gap',title:'Stewardship ends with the gift',note:'After payment clears, the relationship goes dormant.'},
+    {s:5,row:'exp',title:'Ready to go deeper — or join the board',note:'The natural next step for leadership donors is leadership itself.'},
+    {s:5,row:'ch',title:'Annual strategic conversation',note:'One honest conversation a year about what\'s next.'},
+    {s:5,row:'act',title:'Board pipeline + major jump asks',note:'Lateral moves and meaningful upgrades, each with a plan.'},
+    {s:5,row:'gap',title:'No ladder from first leadership gift to board',note:'The pathway exists in our heads, not in our process.'},
   ])};
 }
-function TPL_blank(){ const st=[
-  {id:uid(),name:'Awareness'},{id:uid(),name:'Engagement'},{id:uid(),name:'First gift'},{id:uid(),name:'Retention'},{id:uid(),name:'Stewardship'}];
-  return {title:'Untitled donor journey',stages:st,cards:[]};
+function TPL_blank(){
+  const st=[
+    {id:uid(),name:'Awareness'},{id:uid(),name:'Engagement'},{id:uid(),name:'First gift'},{id:uid(),name:'Retention'},{id:uid(),name:'Stewardship'}];
+  return {title:'Untitled donor journey',stages:st,rows:BASE4(),cards:[]};
 }
-const TEMPLATES={annual:TPL_annual,sustainer:TPL_sustainer,major:TPL_major,blank:TPL_blank};
+const TEMPLATES={
+  'annual-giving':TPL_annual_giving,
+  'change-makers':TPL_change_makers,
+  'signature-events':TPL_signature_events,
+  'community-events':TPL_community_events,
+  'planned-giving':TPL_planned_giving,
+  'corporate-sponsorship':TPL_corporate,
+  'leadership-giving':TPL_leadership,
+  blank:TPL_blank,
+};
+const TPL_ALIAS={'annual':'annual-giving','sustainer':'annual-giving','major':'leadership-giving'};
+const TPL_ORDER=['annual-giving','leadership-giving','planned-giving','signature-events','community-events','change-makers','corporate-sponsorship'];
+const TPL_CAT={
+  'annual-giving':'Giving','leadership-giving':'Giving','planned-giving':'Giving',
+  'signature-events':'Events','community-events':'Events',
+  'change-makers':'People-powered','corporate-sponsorship':'Partnerships',
+};
+const TPL_ICON={'annual-giving':'📬','leadership-giving':'🤝','planned-giving':'🕊️','signature-events':'🎟️','community-events':'🏡','change-makers':'📣','corporate-sponsorship':'🏢'};
+const TPL_NAME={'annual-giving':'Annual giving','change-makers':'Change Makers','signature-events':'Signature events','community-events':'Community events','planned-giving':'Planned giving','corporate-sponsorship':'Corporate sponsorship','leadership-giving':'Leadership giving'};
+const TPL_BLURB={
+  'annual-giving':'The annual fund lifecycle — acquire, retain, steward — with the recurring appeal calendar built in.',
+  'leadership-giving':'Moves management for major donors: identify, qualify, cultivate, ask, steward, expand.',
+  'planned-giving':'The legacy journey: from awareness to bequest to recognition. Low frequency, high value.',
+  'signature-events':'The big night — guest to table to sponsor, and the audience turned into a base.',
+  'community-events':'Low-barrier local events: outreach → attendance → conversion to the base.',
+  'change-makers':'Peer-to-peer: supporter → fundraiser → mobilizer → donor.',
+  'corporate-sponsorship':'The B2B journey: identify → propose → activate → renew. Partner language throughout.',
+};
 
 /* ================= state ================= */
 const state={
   doc:null,
-  rowsVisible:Object.fromEntries(ROWS.map(r=>[r.id,true])),
+
   sel:null,            // {type:'card'|'stage', id}
   hist:[], hi:-1,
   connectMode:false, edgeFrom:null,
@@ -509,6 +700,7 @@ function commit(render=true){
   saveSoon();
 }
 function applyDoc(doc,push=true){
+  ensureRows(doc);
   state.doc=doc;
   state.sel=null; state.edgeFrom=null; closeEditor();
   hideEmpty();
@@ -516,6 +708,7 @@ function applyDoc(doc,push=true){
   document.title=(doc.title||'Donor journey')+' — JourneyMap';
   if(push) pushHist(true);
   renderAll();
+  renderRowChips();
 }
 function addStage(name){
   if(!state.doc) applyTemplate('blank');
@@ -572,7 +765,7 @@ function renderAll(){
   const spacer=document.createElement('div'); g.appendChild(spacer);       // gutter header
   state.doc.stages.forEach((st,idx)=>{ g.appendChild(stageHead(st,idx)); });
   g.appendChild(colAddEl());
-  ROWS.filter(r=>state.rowsVisible[r.id]).forEach(row=>{
+  ensureRows(state.doc).filter(r=>r.visible).forEach(row=>{
     const gut=document.createElement('div'); gut.className='gutter';
     gut.style.setProperty('--grow-color',row.v);
     gut.innerHTML='<div class="glabel">'+esc(row.name)+'</div>';
@@ -680,12 +873,12 @@ function renderEdges(){
   const zr=(grid.offsetWidth?gb.width/grid.offsetWidth:1)||1;
   const box=el=>{ const r=el.getBoundingClientRect();
     return {x:(r.left-gb.left)/zr, y:(r.top-gb.top)/zr, w:r.width/zr, h:r.height/zr}; };
-  const rowOf=id=>{ const c=state.doc.cards.find(x=>x.id===id); return c?c.row:'gap'; };
+  const rowOf=id=>{ const c=state.doc.cards.find(x=>x.id===id); return (c?getRow(c.row):getRow('gap')).hex||'#999'; };
   let h=edgeDefs('arw');
   edges.forEach(ed=>{
     const aEl=$('.card[data-id="'+ed.from+'"]'), bEl=$('.card[data-id="'+ed.to+'"]');
     if(!aEl||!bEl) return;
-    const hex=(ROWMAP[rowOf(ed.from)]||{}).hex||'#999';
+    const hex=rowOf(ed.from);
     h+=edgeMarkup(edgeGeometry(box(aEl),box(bEl)),hex,'arw');
   });
   edgesSvg.innerHTML=h;
@@ -773,7 +966,7 @@ function openEditor(card,newSpec,anchor){
   editing=card?{card}:{new:true,...newSpec};
   $('#eTitle').value=card?card.title:'';
   $('#eNote').value=card?(card.note||''):'';
-  const row=card?ROWMAP[card.row]:(newSpec?ROWMAP[newSpec.row]:ROWS[0]);
+  const row=card?getRow(card.row):(newSpec?getRow(newSpec.row):(state.doc.rows||DEFAULT_ROWS)[0]);
   $('#eDot').style.background=row?vartorow(row):'#bbb';
   $('#eType').textContent=card?'Card in '+row.name:'New card — '+row.name;
   ed.style.display='flex';
@@ -797,7 +990,7 @@ function saveEditor(){
     editing=null; closeEditor();
     // targeted insert (no full re-render — keeps any in-progress drag alive)
     if(cell2){
-      const el=cardEl(card,ROWMAP[card.row]);
+      const el=cardEl(card,getRow(card.row));
       const ag=cell2.querySelector('.addghost');
       if(ag) cell2.insertBefore(el,ag); else cell2.appendChild(el);
       pushHist(false); updateStatus(); scheduleEdges(); saveSoon();
@@ -864,8 +1057,7 @@ function initEvents(){
     if(e.target===e.currentTarget){ e.currentTarget.style.display='none'; }
   });
 
-  // empty state
-  $$('#empty .tpl').forEach(t=>t.addEventListener('click',()=>applyTemplate(t.dataset.tpl)));
+  // empty state: tiles built + bound in renderTplTiles() (init)
 
   // row chips
   renderRowChips();
@@ -881,23 +1073,34 @@ function initEvents(){
 }
 function renderRowChips(){
   const box=$('#rowChips'); box.innerHTML='';
-  ROWS.forEach(r=>{
-    const chip=document.createElement('div'); chip.className='chip'+(state.rowsVisible[r.id]?'':' off');
-    chip.innerHTML='<span class="dot" style="background:'+r.hex+'"></span>'+esc(r.name);
-    chip.addEventListener('click',()=>{
-      state.rowsVisible[r.id]=!state.rowsVisible[r.id];
-      renderRowChips(); renderAll();
-      if(!state.rowsVisible[r.id]) toast('Hidden: '+r.name);
+  (state.doc?ensureRows(state.doc):[]).forEach(r=>{
+    const chip=document.createElement('div'); chip.className='chip'+(r.visible?'':' off');
+    chip.innerHTML='<span class="dot" style="background:'+r.hex+'"></span>'+esc(r.name)
+      +(DEFAULT_ROW_IDS.includes(r.id)?'':'<span class="x" title="Remove lane">×</span>');
+    chip.addEventListener('click',e=>{
+      if(e.target.classList.contains('x')){ deleteRow(r.id); return; }
+      r.visible=!r.visible; renderRowChips(); renderAll();
+      toast(r.visible?'Shown: '+r.name:'Hidden: '+r.name);
     });
     box.appendChild(chip);
   });
 }
+function deleteRow(id){
+  if(!state.doc||!confirm('Remove this lane and its cards?')) return;
+  state.doc.rows=state.doc.rows.filter(r=>r.id!==id);
+  state.doc.cards=state.doc.cards.filter(c=>c.row!==id);
+  state.doc.edges=state.doc.edges.filter(e=>{
+    const fc=state.doc.cards.find(c=>c.id===e.from), tc=state.doc.cards.find(c=>c.id===e.to);
+    return fc&&tc;
+  });
+  commit();
+  renderRowChips();
+}
 function addCustomRow(){
+  if(!state.doc) applyTemplate('blank');
   const name=prompt('Lane name (e.g. “Automation & triggers”):');
   if(!name||!name.trim()) return;
-  ROWS.push({id:'custom'+Date.now().toString(36),name:name.trim(),v:'#8a7db5',hex:'#8a7db5'});
-  ROWMAP[ROWS[ROWS.length-1].id]=ROWS[ROWS.length-1];
-  state.rowsVisible[ROWS[ROWS.length-1].id]=true;
+  ensureRows(state.doc).push({id:'custom'+Date.now().toString(36),name:name.trim(),v:'#8a7db5',hex:'#8a7db5',visible:true});
   renderRowChips();
   commit();
   toast('Added lane: '+name.trim());
@@ -967,7 +1170,8 @@ function wrapLines(text,maxW,fs,maxLines){
 }
 function buildExportSVG(){
   const doc=state.doc;
-  const visible=ROWS.filter(r=>state.rowsVisible[r.id]);
+  ensureRows(doc);
+  const visible=doc.rows.filter(r=>r.visible);
   const pad=44, titleH=62, headH=54, rowGap=20, cardGap=9, cellPad=8;
   const n=doc.stages.length;
   const xOf=c=>pad+GUTTER+c*(COLW+GAP);
@@ -1034,7 +1238,7 @@ function buildExportSVG(){
   });
   // ---- flow arrows
   (doc.edges||[]).forEach(ed=>{ const a=rects.get(ed.from), b=rects.get(ed.to); if(!a||!b) return;
-    const c=doc.cards.find(x=>x.id===ed.from); const hex=((ROWMAP[c?c.row:'gap'])||{}).hex||'#999';
+    const c0=doc.cards.find(x=>x.id===ed.from); const hex=(doc.rows.find(r=>r.id===(c0?c0.row:'gap'))||{}).hex||'#999';
     h+=edgeMarkup(edgeGeometry(a,b),hex,'arwX');
   });
   // ---- cards
@@ -1070,13 +1274,48 @@ function exportPNG(){
   img.src=url;
 }
 
+/* ================= template picker ================= */
+function renderTplTiles(){
+  const grid=$('#tplGrid'); grid.innerHTML='';
+  const mk=k=>{
+    const t=document.createElement('div'); t.className='tpl'; t.dataset.tpl=k;
+    t.innerHTML='<div class="t-cat">'+esc(TPL_CAT[k]||'Portfolio')+'</div><div class="t-ic">'+(TPL_ICON[k]||'🗂️')+'</div><div class="t-n">'+esc(TPL_NAME[k]||k)+'</div><div class="t-d">'+esc(TPL_BLURB[k]||'')+'</div>';
+    t.addEventListener('click',()=>applyTemplate(k));
+    grid.appendChild(t);
+  };
+  TPL_ORDER.forEach(k=>mk(k));
+  const b=document.createElement('div'); b.className='tpl'; b.dataset.tpl='blank';
+  b.innerHTML='<div class="t-cat">Start fresh</div><div class="t-ic">⬜</div><div class="t-n">Blank map</div><div class="t-d">From scratch — add your own stages and lanes.</div>';
+  b.addEventListener('click',()=>applyTemplate('blank'));
+  grid.appendChild(b);
+}
+function buildTplMenu(){
+  const box=$('#tplItems'); box.innerHTML='';
+  const mk=k=>{
+    const btn=document.createElement('button'); btn.className='tpl'; btn.dataset.tpl=k;
+    btn.style.cssText='width:100%;border:none;border-bottom:1px solid var(--line);border-radius:0;padding:9px 8px;display:flex;align-items:center;gap:8px;min-height:0';
+    btn.innerHTML='<span>'+(TPL_ICON[k]||'🗂️')+'</span><span style="font-weight:600">'+esc(TPL_NAME[k]||k)+'</span><span class="t-cat" style="margin:0 0 0 auto">'+esc(TPL_CAT[k]||'')+'</span>';
+    btn.addEventListener('click',()=>applyTemplate(k));
+    box.appendChild(btn);
+  };
+  TPL_ORDER.forEach(k=>mk(k));
+  const b=document.createElement('button'); b.className='tpl'; b.dataset.tpl='blank';
+  b.style.cssText='width:100%;border:none;border-radius:0;padding:9px 8px;display:flex;align-items:center;gap:8px;min-height:0';
+  b.innerHTML='<span>⬜</span><span style="font-weight:600">Blank map</span>';
+  b.addEventListener('click',()=>applyTemplate('blank'));
+  box.appendChild(b);
+}
+
 /* ================= init ================= */
 function hideEmpty(){ $('#empty').style.display='none'; document.body.classList.remove('premap'); }
 function init(){
   initEvents();
+  renderTplTiles();
+  buildTplMenu();
   const saved=loadSaved();
   if(saved){
     saved.cards=saved.cards||[]; saved.edges=saved.edges||[];
+    ensureRows(saved);
     state.doc=saved;
     $('#mapTitle').value=saved.title||'';
     hideEmpty();
@@ -1086,7 +1325,8 @@ function init(){
     toast('Restored your last map');
   }
   const h=(location.hash||'').replace('#','');
-  if(!state.doc&&TEMPLATES[h]) setTimeout(()=>applyTemplate(h),0);
+  const key=TPL_ALIAS[h]||h;
+  if(!state.doc&&TEMPLATES[key]) setTimeout(()=>applyTemplate(key),0);
   setTimeout(applyZoom,50);
   saveSoon();
 }

@@ -8,12 +8,12 @@ A single-file web app for mapping a nonprofit's donor journey visually — stage
 
 - **Open:** double-click `index.html` (any modern browser, works offline).
 - **Share:** email the single file, drop it on a shared drive, or host it anywhere — it's one static file.
-- **Start:** pick a template on the landing screen — *Annual fund*, *Sustainer program*, *Major gifts* — or a blank map.
-- **Deep link a template:** open with `#annual`, `#sustainer`, `#major`, or `#blank` (e.g. `index.html#major`).
+- **Start:** pick the portfolio your team owns on the landing screen — *Annual giving*, *Leadership giving*, *Planned giving*, *Signature events*, *Community events*, *Change Makers*, *Corporate sponsorship* — or a blank map. Each template is a standard journey for that portfolio, with the recurring episodes (appeals, event cycle) embedded as their own lane.
+- **Deep link a template:** open with `#annual-giving`, `#leadership-giving`, `#planned-giving`, `#signature-events`, `#community-events`, `#change-makers`, `#corporate-sponsorship`, or `#blank` (old links `#annual` / `#sustainer` → annual giving, `#major` → leadership giving still work).
 
 ### The map
 - **Stages** = columns (lifecycle phases). Click the header to rename, `×` to delete, `+ Stage` or the dashed column to add.
-- **Lanes** = rows: Donor experience · Channels & touchpoints · Org actions · Gaps & opportunities. Toggle them in the bar above the canvas, or add a custom lane.
+- **Lanes** = rows. Each map carries its own lanes — the standard four (Donor experience · Channels & touchpoints · Org actions · Gaps & opportunities) plus portfolio extras (e.g. **Recurring episodes** on Annual giving — the appeal calendar). Toggle them in the bar above the canvas, add a custom lane, or remove a custom lane with its `×`.
 - **Cards** = the items in each stage × lane cell. Click `+ card` or empty cell space to add; `⋯` to edit; drag to move between cells.
 - **Connect mode** = draw flow arrows between cards (click start card → target card; click again to remove).
 - **Fit width / zoom** = toolbar dropdown; *Fit width* keeps the whole journey on screen (default).
