@@ -10,4 +10,6 @@ echo "→ E2E smoke test (playwright-core)"
 ( cd dev && node smoke.js )
 echo "→ Connector geometry (D-001)"
 ( cd dev && node connectors.js )
+echo "→ Template library (D-002)"
+( cd dev && node templates.js )
 echo "✓ verify passed"
