@@ -54,4 +54,6 @@ A bundle is a single self-contained file holding the **entire history**; restore
 ```bash
 git clone ~/backups/journeymap-YYYY-MM-DD-HHMM.gitbundle journeymap-restored
 ```
-Verified working (clone → full log + tags). Run it manually, or schedule it — see the open decision in `DIRECTIVES.md` about adding a remote.
+Verified working (clone → full log + tags). **Scheduled:** cron runs it daily at 21:30 UTC, logging to `~/backups/journeymap-backup.log`.
+
+*Caveat: `~/backups` is on the same disk as the repo, so this protects against bad changes and repo corruption — not disk/machine failure. Adding an off-machine target (NAS / another host / private remote) is the next upgrade if that risk matters.
