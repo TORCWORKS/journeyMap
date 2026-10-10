@@ -1,0 +1,15 @@
+# dev harness — never committed
+dev/node_modules/
+node_modules/
+package-lock.json.bak
+
+# playwright / test artifacts
+.playwright-artifacts*/
+*.png.tmp
+
+# editors / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

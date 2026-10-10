@@ -1,0 +1,1074 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JourneyMap — Donor Journey Mapping</title>
+<style>
+  :root{
+    --bg:#f6f3ec; --paper:#fdfcfa; --ink:#26221b; --muted:#8b8374;
+    --line:#e3dccd; --line-strong:#d2c9b6;
+    --accent:#0e6f5c; --accent-2:#0b5749; --accent-soft:#e3f0eb;
+    --rose:#c8502f;
+    /* row theme */
+    --r-exp:#e97f4c; --r-exp-bg:#fbe9db;
+    --r-ch:#5b8ec9; --r-ch-bg:#e5eef9;
+    --r-act:#4f9d6d; --r-act-bg:#e2f1e6;
+    --r-gap:#c25353; --r-gap-bg:#f9e3e3;
+    --shadow-s:0 1px 2px rgba(60,50,30,.06);
+    --shadow-m:0 4px 14px rgba(60,50,30,.10);
+    --shadow-l:0 14px 40px rgba(60,50,30,.18);
+    --radius:11px;
+    --colw:294px; --gutterw:168px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    background:var(--bg); color:var(--ink); overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--accent);color:#fff}
+
+  /* ---------- toolbar ---------- */
+  .toolbar{
+    min-height:52px; max-height:110px; flex:0 0 auto; display:flex; flex-wrap:wrap; align-items:center; gap:8px;
+    padding:8px 14px; background:var(--paper);
+    border-bottom:1px solid var(--line); z-index:50;
+  }
+  .zoomsel{
+    border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink);
+    font-size:12.5px;font-weight:600;padding:8px 8px;cursor:pointer;
+  }
+  .zoomsel:hover{border-color:var(--line-strong)}
+  body.premap .rowbar{display:none}
+  .brand{display:flex;align-items:center;gap:9px;margin-right:6px}
+  .logo{
+    width:30px;height:30px;border-radius:9px;background:var(--accent);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;
+    box-shadow:inset 0 -2px 0 rgba(0,0,0,.15);
+  }
+  .brand-name{font-weight:700;font-size:14.5px;letter-spacing:-.01em}
+  .brand-name em{font-style:normal;color:var(--accent)}
+  .maptitle{
+    flex:0 1 320px;min-width:160px;border:1px solid transparent;background:transparent;
+    border-radius:8px;padding:7px 10px;font-size:14px;font-weight:600;color:var(--ink);
+  }
+  .maptitle:hover{border-color:var(--line);background:#fff}
+  .maptitle:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px var(--accent-soft)}
+  .spacer{flex:1}
+  .btn{
+    border:1px solid transparent;background:var(--accent);color:#fff;cursor:pointer;
+    border-radius:9px;padding:8px 12px;font-size:13px;font-weight:600;
+    display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:background .12s,box-shadow .12s;
+  }
+  .btn:hover{background:var(--accent-2)}
+  .btn:active{transform:translateY(1px)}
+  .btn-ghost{background:#fff;color:var(--ink);border-color:var(--line)}
+  .btn-ghost:hover{background:#f4f0e6;border-color:var(--line-strong)}
+  .btn.active{background:var(--accent-soft);color:var(--accent-2);border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .btn[disabled]{opacity:.4;pointer-events:none}
+  .btn-danger{background:transparent;color:var(--rose);border-color:rgba(200,80,47,.4)}
+  .btn-danger:hover{background:#fdf0ec}
+  .icon{font-size:14px;line-height:1}
+
+  /* second toolbar row */
+  .rowbar{
+    flex:0 0 44px;display:flex;align-items:center;gap:8px;padding:0 14px;
+    background:var(--paper);border-bottom:1px solid var(--line);z-index:50;
+  }
+  .rowbar .lbl{font-size:12px;font-weight:600;color:var(--muted);margin-right:2px;letter-spacing:.02em}
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);
+    border-radius:999px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;
+    background:#fff;color:var(--ink);user-select:none;transition:all .12s;
+  }
+  .chip .dot{width:9px;height:9px;border-radius:50%}
+  .chip:hover{border-color:var(--line-strong)}
+  .chip.off{opacity:.45}
+  .chip .x{font-weight:700;color:var(--muted);padding-left:4px;opacity:.8}
+  .chip .x:hover{color:var(--rose)}
+  .sep{width:1px;height:20px;background:var(--line);margin:0 4px}
+
+  /* ---------- workspace / grid ---------- */
+  .workspace{flex:1;overflow:auto;position:relative;outline:none}
+  .canvas{padding:30px 40px 80px;position:relative;width:max-content;min-width:100%}
+  .grid{display:grid;grid-template-columns:var(--gutterw) repeat(var(--ncols),var(--colw));column-gap:14px;row-gap:10px;position:relative;align-items:start}
+  .edges{position:absolute;inset:0;pointer-events:none;z-index:1;overflow:visible}
+
+  .colhead{
+    display:flex;align-items:center;gap:7px;padding:8px 9px;border-radius:10px;
+    background:#fff;border:1px solid var(--line);box-shadow:var(--shadow-s);
+    position:sticky;top:0;z-index:4;
+  }
+  .colhead .num{
+    width:20px;height:20px;flex:0 0 20px;border-radius:7px;background:var(--ink);color:#fff;
+    font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;
+  }
+  .colhead input.spname{
+    flex:1;min-width:0;border:1px solid transparent;background:transparent;border-radius:6px;
+    font-size:13.5px;font-weight:650;color:var(--ink);padding:3px 4px;
+  }
+  .colhead input.spname:hover{border-color:var(--line)}
+  .colhead input.spname:focus{outline:none;border-color:var(--accent);background:#fff}
+  .colhead .del{
+    border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;
+    padding:3px 5px;border-radius:6px;visibility:hidden;
+  }
+  .colhead:hover .del{visibility:visible}
+  .colhead .del:hover{color:var(--rose);background:#fdf0ec}
+
+  .gutter{
+    position:sticky;left:0;z-index:3;background:var(--bg);
+    display:flex;align-items:flex-start;padding-top:2px;min-height:46px;
+  }
+  .gutter .glabel{
+    font-size:12px;font-weight:650;color:var(--muted);letter-spacing:.03em;line-height:1.35;
+    padding:4px 10px 4px 2px;border-left:3px solid var(--grow-color,var(--line));padding-left:8px;
+  }
+  .cell{
+    min-height:64px;border-radius:10px;border:2px dashed #e2dac8;
+    padding:6px;display:flex;flex-direction:column;gap:8px;position:relative;transition:background .1s,border-color .1s;
+  }
+  .cell:hover{border-color:#cfc4ab;background:rgba(255,255,255,.55)}
+  .cell.dragover{border-color:var(--accent);background:var(--accent-soft)}
+  .cell .addghost{
+    display:flex;height:20px;flex:0 0 20px;border:1.5px dashed #e6dece;border-radius:8px;color:#bdb39c;
+    font-size:11px;font-weight:600;align-items:center;justify-content:center;cursor:pointer;background:transparent;
+    transition:all .12s;user-select:none;
+  }
+  .cell:hover .addghost{border-color:#cfc4ab;color:#8b8374}
+  .cell .addghost:hover{border-color:var(--accent);color:var(--accent-2);background:var(--accent-soft)}
+
+  .card{
+    background:#fff;border:1px solid var(--line);border-left:4px solid var(--grow-color,#bbb);
+    border-radius:9px;padding:8px 10px 9px;box-shadow:var(--shadow-s);cursor:grab;
+    position:relative;transition:box-shadow .12s,transform .12s;animation:cardin .28s ease both;
+  }
+  @keyframes cardin{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+  .card:hover{box-shadow:var(--shadow-m);transform:translateY(-1px)}
+  .card.selected{outline:2px solid var(--accent);outline-offset:1px}
+  .card.dragging{position:fixed;z-index:100;box-shadow:var(--shadow-l);transform:rotate(.6deg);pointer-events:none;animation:none}
+  .card .ctitle{font-size:13px;font-weight:700;line-height:1.4;color:var(--ink);padding-right:22px}
+  .card .cnote{font-size:12px;color:#57503f;line-height:1.5;margin-top:4px;white-space:pre-wrap;word-break:break-word}
+  .card .cedit{
+    position:absolute;top:5px;right:5px;width:20px;height:20px;border:none;border-radius:6px;
+    background:transparent;color:var(--muted);cursor:pointer;font-size:13px;line-height:1;opacity:0;
+  }
+  .card:hover .cedit{opacity:1}
+  .card .cedit:hover{background:var(--accent-soft);color:var(--accent-2)}
+  .card.hint-source{outline:2px dashed var(--accent);outline-offset:2px}
+  .connectmode .card:hover{outline:2px solid var(--accent);outline-offset:1px;cursor:crosshair}
+
+  .coladd{
+    border:2px dashed var(--line-strong);border-radius:12px;min-height:120px;
+    display:flex;align-items:center;justify-content:center;color:var(--muted);
+    font-size:13px;font-weight:600;cursor:pointer;transition:all .12s;position:sticky;top:0;
+  }
+  .coladd:hover{border-color:var(--accent);color:var(--accent-2);background:var(--accent-soft)}
+
+  /* ---------- editor popover ---------- */
+  .editor{
+    position:fixed;z-index:120;width:280px;background:#fff;border:1px solid var(--line-strong);
+    border-radius:13px;box-shadow:var(--shadow-l);padding:14px;display:flex;flex-direction:column;gap:10px;
+    animation:popin .15s ease both;
+  }
+  @keyframes popin{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+  .editor .ehead{display:flex;align-items:center;gap:6px}
+  .editor .ehead .eyr{width:10px;height:10px;border-radius:50%}
+  .editor .ehead .etyp{font-size:11.5px;font-weight:700;letter-spacing:.03em;color:var(--muted);text-transform:uppercase}
+  .editor label{font-size:11px;font-weight:650;color:var(--muted);letter-spacing:.02em}
+  .editor input[type=text],.editor textarea{
+    width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:13px;
+    font-family:inherit;color:var(--ink);background:#fff;
+  }
+  .editor input:focus,.editor textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .editor textarea{resize:vertical;min-height:56px;line-height:1.45}
+  .editor .efoot{display:flex;justify-content:space-between;align-items:center;margin-top:2px}
+  .editor .hint{font-size:10.5px;color:var(--muted)}
+
+  /* ---------- empty state ---------- */
+  .empty{
+    position:absolute;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(1200px 600px at 20% -10%, #eef4ec 0%, var(--bg) 55%);
+    overflow:auto;
+  }
+  .empty .wrap{max-width:660px;padding:40px;text-align:center}
+  .empty .eyebrow{font-size:11px;font-weight:800;letter-spacing:.14em;color:var(--accent);margin-bottom:10px}
+  .empty .tpllabel{font-size:12.5px;font-weight:700;color:#4d4638;margin-bottom:10px}
+  .empty h1{font-size:30px;letter-spacing:-.02em;font-weight:750}
+  .empty h1 em{font-style:normal;color:var(--accent)}
+  .empty p{color:var(--muted);font-size:14.5px;line-height:1.55;margin:10px auto 26px;max-width:460px}
+  .tplgrid{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .tpl{
+    width:196px;min-height:150px;padding:16px 14px;background:#fff;border:1px solid var(--line);border-radius:13px;
+    cursor:pointer;text-align:left;transition:all .14s;box-shadow:var(--shadow-s);display:flex;flex-direction:column;
+  }
+  .tpl .t-d{margin-top:auto}
+  .tpl:hover{border-color:var(--accent);box-shadow:var(--shadow-m);transform:translateY(-2px)}
+  .tpl .t-ic{font-size:22px;margin-bottom:8px}
+  .tpl .t-n{font-size:13.5px;font-weight:700}
+  .tpl .t-d{font-size:11.5px;color:var(--muted);line-height:1.4;margin-top:4px}
+  .empty .steps{display:flex;gap:26px;justify-content:center;margin-top:30px;color:var(--muted);font-size:12.5px}
+  .empty .steps b{display:block;color:var(--ink);font-size:13px;margin-bottom:2px}
+
+  /* ---------- modal / toast ---------- */
+  .backdrop{position:fixed;inset:0;background:rgba(40,34,20,.35);z-index:90;display:flex;align-items:center;justify-content:center}
+  .modal{background:#fff;border-radius:16px;box-shadow:var(--shadow-l);max-width:440px;width:calc(100vw - 40px);padding:22px;max-height:80vh;overflow:auto}
+  .modal h3{font-size:16px;margin-bottom:10px}
+  .modal ul{list-style:none;display:flex;flex-direction:column;gap:8px;font-size:13px;line-height:1.5;color:#4d4638}
+  .modal ul b{color:var(--ink)}
+  .modal .keys{display:inline-block;background:var(--accent-soft);color:var(--accent-2);border-radius:5px;padding:1px 6px;font-size:11.5px;font-weight:700;margin:0 2px}
+  .modal .close{margin-top:16px;width:100%}
+  .toast{
+    position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:130;
+    background:#2a251c;color:#fff;font-size:13px;padding:9px 16px;border-radius:999px;
+    box-shadow:var(--shadow-l);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-2px)}
+
+  /* ---------- print ---------- */
+  @media print{
+    body{background:#fff;overflow:visible}
+    .toolbar,.rowbar,.editor,.toast,.backdrop,.empty,.edges{display:none !important}
+    .workspace{overflow:visible;flex:none}
+    .canvas{padding:0;width:auto}
+    .grid{width:100%}
+  }
+</style>
+</head>
+<body class="premap">
+  <header class="toolbar">
+    <div class="brand"><div class="logo">JM</div><div class="brand-name">Journey<em>Map</em></div></div>
+    <input id="mapTitle" class="maptitle" placeholder="Untitled donor journey" spellcheck="false">
+    <div class="spacer"></div>
+    <button id="btnTpl" class="btn btn-ghost">Templates <span class="icon">▾</span></button>
+    <button id="btnStage" class="btn"> <span class="icon">+</span> Stage</button>
+    <button id="btnConnect" class="btn btn-ghost" title="Draw flow connections between cards">Connect</button>
+    <span class="sep"></span>
+    <button id="btnUndo" class="btn btn-ghost" title="Undo (Ctrl+Z)" disabled><span class="icon">↶</span></button>
+    <button id="btnRedo" class="btn btn-ghost" title="Redo (Ctrl+Shift+Z)" disabled><span class="icon">↷</span></button>
+    <span class="sep"></span>
+    <button id="btnSave" class="btn btn-ghost" title="Download as JSON">Save file</button>
+    <button id="btnLoad" class="btn btn-ghost" title="Open a saved map">Load</button>
+    <button id="btnPng" class="btn" title="Export a clean image of the map">Export PNG</button>
+    <button id="btnPdf" class="btn btn-ghost" title="Print to PDF">PDF</button>
+    <select id="zoomSel" class="zoomsel" title="Zoom">
+      <option value="fit" selected>Fit width</option>
+      <option value="0.5">50%</option>
+      <option value="0.66">66%</option>
+      <option value="0.8">80%</option>
+      <option value="1">100%</option>
+    </select>
+    <button id="btnHelp" class="btn btn-ghost" title="Help">?</button>
+  </header>
+  <div class="rowbar">
+    <span class="lbl">Lanes</span>
+    <div id="rowChips" style="display:contents"></div>
+    <span class="sep"></span>
+    <button id="btnAddRow" class="btn btn-ghost" style="padding:5px 10px;font-size:12px"><span class="icon">+</span> custom lane</button>
+    <div class="spacer"></div>
+    <span class="lbl" id="statusLbl"></span>
+  </div>
+
+  <main id="workspace" class="workspace" tabindex="0">
+    <div id="canvas" class="canvas">
+      <div id="grid" class="grid"></div>
+      <svg id="edges" class="edges"></svg>
+    </div>
+    <div id="empty" class="empty">
+      <div class="wrap">
+        <div class="eyebrow">START HERE</div>
+        <h1>Map your <em>donor journey</em> in minutes.</h1>
+        <p>Not a blank canvas, not a flat PDF. Start from a proven journey, then edit it to match how your donors actually move — stages left to right, each lane a layer of the experience.</p>
+        <div class="tpllabel">Pick a starting point</div>
+        <div class="tplgrid">
+          <div class="tpl" data-tpl="annual"><div class="t-ic">📬</div><div class="t-n">Annual fund</div><div class="t-d">Acquisition → retention → stewardship → lapse. The classic lifecycle.</div></div>
+          <div class="tpl" data-tpl="sustainer"><div class="t-ic">🔁</div><div class="t-n">Sustainer program</div><div class="t-d">From one-time giver to monthly supporter, and keeping them.</div></div>
+          <div class="tpl" data-tpl="major"><div class="t-ic">🤝</div><div class="t-n">Major gifts</div><div class="t-d">Moves-management: identify, qualify, cultivate, ask, steward.</div></div>
+          <div class="tpl" data-tpl="blank"><div class="t-ic">⬜</div><div class="t-n">Blank map</div><div class="t-d">Start from scratch — add your own stages and lanes.</div></div>
+        </div>
+        <div class="steps">
+          <div><b>1 · Add a stage</b>Lifecycle phases, left → right</div>
+          <div><b>2 · Fill the lanes</b>What donors feel, see, and you do</div>
+          <div><b>3 · Export</b>Board-ready PNG or print-to-PDF</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="editor" class="editor" style="display:none">
+    <div class="ehead"><span id="eDot" class="eyr" style="background:#bbb"></span><span id="eType" class="etyp">Card</span></div>
+    <div>
+      <label for="eTitle">Title</label>
+      <input id="eTitle" type="text" spellcheck="false">
+    </div>
+    <div>
+      <label for="eNote">Note</label>
+      <textarea id="eNote" spellcheck="false"></textarea>
+    </div>
+    <div class="efoot">
+      <button id="eDelete" class="btn btn-danger" style="padding:6px 10px;font-size:12px">Delete</button>
+      <span class="hint">Esc closes · drag to move</span>
+    </div>
+  </div>
+
+  <div id="tplMenu" class="backdrop" style="display:none;z-index:95;align-items:flex-start;background:transparent">
+    <div class="modal" style="width:260px;padding:10px">
+      <button class="tpl" data-tpl="annual" style="width:100%;border:none;border-bottom:1px solid var(--line);border-radius:0;padding:10px 8px">📬 Annual fund</button>
+      <button class="tpl" data-tpl="sustainer" style="width:100%;border:none;border-bottom:1px solid var(--line);border-radius:0;padding:10px 8px">🔁 Sustainer program</button>
+      <button class="tpl" data-tpl="major" style="width:100%;border:none;border-bottom:1px solid var(--line);border-radius:0;padding:10px 8px">🤝 Major gifts</button>
+      <button class="tpl" data-tpl="blank" style="width:100%;border:none;border-radius:0;padding:10px 8px">⬜ Blank map</button>
+      <button id="tplClear" style="width:100%;background:none;border:none;color:var(--rose);font-size:12.5px;font-weight:600;padding:10px 8px;cursor:pointer">Clear everything…</button>
+    </div>
+  </div>
+
+  <div id="modalHelp" class="backdrop" style="display:none">
+    <div class="modal">
+      <h3>Using JourneyMap</h3>
+      <ul>
+        <li><b>Stages</b> — the columns of the journey, left to right. Rename by clicking, delete with the <span class="keys">×</span>, add stages with <span class="keys">+ Stage</span> or the dashed column at the end.</li>
+        <li><b>Lanes</b> — each row is a layer: what donors <b>experience</b>, the <b>channels</b> they use, what <b>your org does</b>, and <b>gaps &amp; opportunities</b>. Toggle lanes in the bar above.</li>
+        <li><b>Cards</b> — click any cell to add one; click a card's <span class="keys">⋯</span> to edit it. Drag cards between cells to move them.</li>
+        <li><b>Connect mode</b> — press <span class="keys">Connect</span>, then click two cards to draw a flow line. Click again to remove it.</li>
+        <li><b>Undo</b> — <span class="keys">Ctrl+Z</span> / <span class="keys">Ctrl+Shift+Z</span>. Your map autosaves in this browser.</li>
+        <li><b>Export</b> — <span class="keys">Export PNG</span> makes a clean image for decks; <span class="keys">PDF</span> prints the whole map. <span class="keys">Save file</span> keeps a copy to reload later.</li>
+      </ul>
+      <button class="btn close" id="helpClose">Got it</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <input type="file" id="fileInput" accept=".json,application/json" style="display:none">
+
+<script>
+'use strict';
+/* ================= helpers ================= */
+const $ =(s,el=document)=>el.querySelector(s);
+const $$=(s,el=document)=>[...el.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let _u=1; const uid=()=>'c'+(Date.now().toString(36))+(''+_u++);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+let toastT=null;
+function toast(msg,ms=2200){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),ms);
+}
+
+/* ================= lanes ================= */
+const ROWS=[
+  {id:'exp',name:'Donor experience',v:'var(--r-exp)',hex:'#e97f4c'},
+  {id:'ch', name:'Channels & touchpoints',v:'var(--r-ch)',hex:'#5b8ec9'},
+  {id:'act',name:'Org actions',v:'var(--r-act)',hex:'#4f9d6d'},
+  {id:'gap',name:'Gaps & opportunities',v:'var(--r-gap)',hex:'#c25353'},
+];
+const ROWMAP=Object.fromEntries(ROWS.map(r=>[r.id,r]));
+
+/* ================= templates ================= */
+function mkCards(stages,defs){ return defs.map(d=>({id:uid(),stage:stages[d.s].id,row:d.row,title:d.title,note:d.note})); }
+function TPL_annual(){ const st=[
+  {id:uid(),name:'Awareness'},{id:uid(),name:'First gift'},{id:uid(),name:'Second gift'},{id:uid(),name:'Sustainer path'},{id:uid(),name:'Stewardship'},{id:uid(),name:'At risk'},{id:uid(),name:'Lapsed'}];
+  return {title:'Annual fund — donor journey',stages:st,cards:mkCards(st,[
+    {s:0,row:'exp',title:'First hears about us',note:'Community event, a friend\'s share, or social ad. The first impression decides the rest.'},
+    {s:0,row:'ch',title:'Event booth · social · peer referral',note:'No single dominant channel yet. Source tracking matters from day one.'},
+    {s:0,row:'gap',title:'First-touch source is untracked',note:'If we can\'t say where new names come from, we can\'t double down on what works.'},
+    {s:1,row:'exp',title:'Moved by a story — gives $75',note:'Emotional, time-boxed decision. Ease and trust beat persuasion here.'},
+    {s:1,row:'ch',title:'Appeal email → landing page → form',note:'Every extra step costs donors. A 1-click mobile checkout should exist.'},
+    {s:1,row:'act',title:'Instant welcome + thank-you',note:'Immediate, personal, mission-first. The second-most-important email we send.'},
+    {s:1,row:'gap',title:'Long silence after the first gift',note:'No second ask planned. The warmest donor we have is the one who just gave.'},
+    {s:2,row:'exp',title:'Warm but passive',note:'Won\'t come back alone. Needs proof their gift did something.'},
+    {s:2,row:'ch',title:'Impact update · quarterly e-news',note:'Show outcomes, not busyness. One photo of a changed life beats four paragraphs.'},
+    {s:2,row:'act',title:'Second ask at ~8 weeks',note:'With an impact story attached — ask for a repeat gift, then open the sustainer door.'},
+    {s:2,row:'gap',title:'Second ask rides the campaign calendar',note:'Should be automated and timed to the donor, not to our schedule.'},
+    {s:3,row:'exp',title:'Wants convenience + identity',note:'Monthly giving is a habit and an identity, not an impulse.'},
+    {s:3,row:'ch',title:'Sustainer page · monthly receipt',note:'Make the recurring option the obvious one at the moment of peak intent.'},
+    {s:3,row:'act',title:'Monthly impact report; upgrade ask ≈ month 9',note:'Sustainers are 3–5× lifetime value. Nurture them like the asset they are.'},
+    {s:3,row:'gap',title:'Conversion ask not timed to intent',note:'We offer the monthly gift only in the year-end push, not at peak warmth.'},
+    {s:4,row:'exp',title:'Feels valued — part of the family',note:'Recognition is fuel. These donors give more, tell friends, and defend us.'},
+    {s:4,row:'ch',title:'Annual report · board thank-you call',note:'A personal call for $500+ donors changes the relationship permanently.'},
+    {s:4,row:'act',title:'Stewardship plan per segment',note:'Who calls, who writes, who sees the ED. A calendar, not an intention.'},
+    {s:4,row:'gap',title:'No upgrade cycle for mid-level donors',note:'The $250–$1k donor is our cheapest growth — nobody cultivates them toward major.'},
+    {s:5,row:'exp',title:'Starts to drift — 9–12 months quiet',note:'Not lost, just unspoken to. The silence is ours, not theirs.'},
+    {s:5,row:'ch',title:'Reactivation email',note:'One good story, one clear reason to return, no guilt.'},
+    {s:5,row:'act',title:'Lapse trigger at 12 months',note:'A watchlist, not a graveyard. Timing is everything in recovery.'},
+    {s:5,row:'gap',title:'Nothing catches drift early',note:'We find lapsed donors in the rear-view mirror. Automation should flag them sooner.'},
+    {s:6,row:'exp',title:'Gone — but retrievable',note:'Lapsed donors return for big moments: campaigns, anniversaries, crises.'},
+    {s:6,row:'ch',title:'Year-end appeal · events',note:'The cheapest win in fundraising is a warm name, not a cold one.'},
+    {s:6,row:'act',title:'Segment + re-engage at year-end',note:'Personal, truthful, specific. One ask at the right moment.'},
+    {s:6,row:'gap',title:'No win-back ladder',note:'One appeal a year leaves most recoverable value on the table.'},
+  ])};
+}
+function TPL_sustainer(){ const st=[
+  {id:uid(),name:'Acquisition'},{id:uid(),name:'Activation'},{id:uid(),name:'Active sustainer'},{id:uid(),name:'Deepening'},{id:uid(),name:'At risk'},{id:uid(),name:'Lapsed'},{id:uid(),name:'Reactivation'}];
+  return {title:'Sustainer program — donor journey',stages:st,cards:mkCards(st,[
+    {s:0,row:'exp',title:'One-time giver, promising signals',note:'Frequent small gifts, event attendance, email opens.'},
+    {s:0,row:'ch',title:'Appeals · events · social',note:'Keep the touchpoints warm and consistent.'},
+    {s:0,row:'act',title:'Identify sustainer candidates',note:'Score by recency + frequency + engagement.'},
+    {s:1,row:'exp',title:'Asked at the moment of max intent',note:'The second gift is the window. The ask must arrive inside it.'},
+    {s:1,row:'ch',title:'One-click monthly conversion page',note:'Silent, no friction, no annual-contract scare.'},
+    {s:1,row:'act',title:'Conversion ask at second gift',note:'“Give a gift every month” — not “become a sustainer”.'},
+    {s:1,row:'gap',title:'No conversion ask exists',note:'Intent peaks and decays without being captured.'},
+    {s:2,row:'exp',title:'Habit forming — needs ritual',note:'The monthly charge is a heartbeat. Feed the relationship.'},
+    {s:2,row:'ch',title:'Monthly impact note',note:'Short, visual, specific. Every month without fail.'},
+    {s:2,row:'act',title:'Onboard + communicate value',note:'Tell them what their $25/mo does, in one person\'s story.'},
+    {s:3,row:'exp',title:'Deepens — asks about legacy',note:'Long-term sustainers are planned-giving prospects.'},
+    {s:3,row:'ch',title:'Sustainer-only updates · member event',note:'Community and exclusivity raise retention.'},
+    {s:3,row:'act',title:'Upgrade ask and legacy conversation',note:'Month 9–12: increase, or leave a legacy.'},
+    {s:3,row:'gap',title:'No legacy conversation',note:'The highest-LTV donor is never asked about planned giving.'},
+    {s:4,row:'exp',title:'Quiet — shares dip',note:'Missed a payment? Sad-story fatigue? Member disconnect?'},
+    {s:4,row:'ch',title:'Win-back email at first miss',note:'Gentle, personal, immediate.'},
+    {s:4,row:'act',title:'Auto-flag payment failure',note:'Recover within 7 days — the money is still warm.'},
+    {s:5,row:'exp',title:'Canceled',note:'Leaves with a reason we should have heard.'},
+    {s:5,row:'ch',title:'Exit survey',note:'One question: what changed?'},
+    {s:5,row:'act',title:'Log the reason against the record',note:'Feeds better asking and better timing.'},
+    {s:5,row:'gap',title:'No exit survey today',note:'We lose sustainers silently and learn nothing.'},
+    {s:6,row:'exp',title:'Returnable — one big story away',note:'A mission moment can revive a lapsed sustainer.'},
+    {s:6,row:'ch',title:'Re-join offer with honor',note:'“Welcome back — here\'s what changed while you were away.”'},
+    {s:6,row:'act',title:'Sustainer re-join campaign',note:'Segment lapsed sustainers at year-end.'},
+  ])};
+}
+function TPL_major(){ const st=[
+  {id:uid(),name:'Identification'},{id:uid(),name:'Qualification'},{id:uid(),name:'Cultivation'},{id:uid(),name:'Solicitation'},{id:uid(),name:'Stewardship'},{id:uid(),name:'Inactive'}];
+  return {title:'Major gifts — moves management',stages:st,cards:mkCards(st,[
+    {s:0,row:'exp',title:'Gives $1k+, attends events, has capacity',note:'Signals: sustained giving, event presence, board/community networks.'},
+    {s:0,row:'ch',title:'Annual report · event sponsors · networks',note:'Where the names come from before they are names.'},
+    {s:0,row:'act',title:'Screening: capacity + affinity + linkage',note:'The classic triad. Score, rank, and assign a portfolio.'},
+    {s:0,row:'gap',title:'No systematic screening',note:'Major prospects are discovered by accident, not by design.'},
+    {s:1,row:'exp',title:'Asks: “what would my money actually do?”',note:'Curiosity or caution — either way, a conversation must follow.'},
+    {s:1,row:'ch',title:'Portfolio conversations',note:'Feasibility first, ask later. Listen twice as much.'},
+    {s:1,row:'act',title:'Qualifying questions: interest, capacity, timing, connectors',note:'Four answers decide the next move. Two meetings is the budget.'},
+    {s:1,row:'gap',title:'Qualification backlog',note:'Questions sit unanswered while momentum cools.'},
+    {s:2,row:'exp',title:'Getting to know the work — and being known',note:'Trust is cultivated, not asked for. No-ask visits are the work of this stage.'},
+    {s:2,row:'ch',title:'Site visit · lunch with ED · tailored impact report',note:'Genuine experiences, not brochures.'},
+    {s:2,row:'act',title:'Engagement plan: ~3 touchpoints/year, zero asks',note:'A written cadence survives staff change and busy weeks.'},
+    {s:2,row:'gap',title:'No cultivation cadence',note:'Cultivation happens when someone remembers — usually the week of the ask.'},
+    {s:3,row:'exp',title:'The ask feels honest; the number is specific',note:'Clarity beats pressure. They want to be asked well.'},
+    {s:3,row:'ch',title:'Proposal + case for support',note:'The case is one page, the vision is one sentence.'},
+    {s:3,row:'act',title:'Right messenger, right moment',note:'Peer or ED. Announce gifts loudly, ask quietly.'},
+    {s:3,row:'gap',title:'No planned-giving conversation',note:'Endowment and legacy asks never make it into the solicitation.'},
+    {s:4,row:'exp',title:'Recognition without awkwardness',note:'Gratitude that is specific, timely, and unhurried.'},
+    {s:4,row:'ch',title:'Naming · private updates · thank-you visit',note:'Personal channels the annual fund never touches.'},
+    {s:4,row:'act',title:'Thank within 48h; impact report at 30 days',note:'The pledge period is the relationship\'s most fragile stretch.'},
+    {s:4,row:'gap',title:'Stewardship ends with the pledge',note:'After the final payment, the relationship goes dormant.'},
+    {s:5,row:'exp',title:'Relationship cooled',note:'Not a loss — a pause. They will return for the right moment.'},
+    {s:5,row:'ch',title:'Annual touch',note:'One genuine update a year keeps the door open.'},
+    {s:5,row:'act',title:'Reviver with real news',note:'Institutional milestones, not asks. Gate the portfolio thoughtfully.'},
+    {s:5,row:'gap',title:'No owner of the inactive portfolio',note:'Every lapsed major donor is next year\'s campaign volunteer.'},
+  ])};
+}
+function TPL_blank(){ const st=[
+  {id:uid(),name:'Awareness'},{id:uid(),name:'Engagement'},{id:uid(),name:'First gift'},{id:uid(),name:'Retention'},{id:uid(),name:'Stewardship'}];
+  return {title:'Untitled donor journey',stages:st,cards:[]};
+}
+const TEMPLATES={annual:TPL_annual,sustainer:TPL_sustainer,major:TPL_major,blank:TPL_blank};
+
+/* ================= state ================= */
+const state={
+  doc:null,
+  rowsVisible:Object.fromEntries(ROWS.map(r=>[r.id,true])),
+  sel:null,            // {type:'card'|'stage', id}
+  hist:[], hi:-1,
+  connectMode:false, edgeFrom:null,
+  drag:null,
+  zoomMode:'fit',
+};
+const LSKEY='djm.doc.v1';
+
+/* ================= history ================= */
+let lastSnap=null;
+function snap(){ return JSON.stringify(state.doc); }
+function pushHist(force){
+  const s=snap();
+  if(!force && s===lastSnap) return;
+  lastSnap=s;
+  state.hist=state.hist.slice(0,state.hi+1);
+  state.hist.push(s);
+  if(state.hist.length>80) state.hist.shift();
+  state.hi=state.hist.length-1;
+  updateUndo();
+}
+function doUndo(){ if(state.hi>0){ state.hi--; applyDoc(JSON.parse(state.hist[state.hi]),false); updateUndo(); } }
+function doRedo(){ if(state.hi<state.hist.length-1){ state.hi++; applyDoc(JSON.parse(state.hist[state.hi]),false); updateUndo(); } }
+function updateUndo(){
+  $('#btnUndo').disabled=state.hi<=0;
+  $('#btnRedo').disabled=state.hi>=state.hist.length-1;
+}
+
+/* ================= persistence ================= */
+let saveT=null;
+function saveSoon(){ clearTimeout(saveT); saveT=setTimeout(()=>{ try{ localStorage.setItem(LSKEY,JSON.stringify(state.doc)); }catch(e){} },350); }
+function loadSaved(){ try{ const raw=localStorage.getItem(LSKEY); if(raw){ const d=JSON.parse(raw); if(d&&Array.isArray(d.stages)) return d; } }catch(e){} return null; }
+
+/* ================= document ops ================= */
+function commit(render=true){
+  pushHist(false);
+  if(render) renderAll();
+  scheduleEdges();
+  saveSoon();
+}
+function applyDoc(doc,push=true){
+  state.doc=doc;
+  state.sel=null; state.edgeFrom=null; closeEditor();
+  hideEmpty();
+  $('#mapTitle').value=doc.title||'';
+  document.title=(doc.title||'Donor journey')+' — JourneyMap';
+  if(push) pushHist(true);
+  renderAll();
+}
+function addStage(name){
+  if(!state.doc) applyTemplate('blank');
+  if(!name) name='New stage';
+  state.doc.stages.push({id:uid(),name});
+  commit();
+  const hs=$$('.colhead'); const inp=hs.length?hs[hs.length-1].querySelector('.spname'):null;
+  if(inp){ inp.focus(); inp.select(); }
+}
+function deleteStage(idx){
+  const st=state.doc.stages[idx]; if(!st) return;
+  state.doc.stages.splice(idx,1);
+  state.doc.cards=state.doc.cards.filter(c=>c.stage!==st.id);
+  state.doc.edges=state.doc.edges.filter(e=>e.from!==st.id&&e.to!==st.id);
+  if(state.sel&&state.sel.type==='stage') state.sel=null;
+  commit();
+}
+function deleteCard(id){
+  state.doc.cards=state.doc.cards.filter(c=>c.id!==id);
+  state.doc.edges=state.doc.edges.filter(e=>e.from!==id&&e.to!==id);
+  if(state.sel&&state.sel.id===id) state.sel=null;
+  state.edgeFrom=null;
+  commit();
+}
+function syncOrderFromDOM(){
+  const ids=$$('.card').map(el=>el.dataset.id);
+  const m=new Map(state.doc.cards.map(c=>[c.id,c]));
+  state.doc.cards=ids.map(id=>m.get(id)).filter(Boolean);
+}
+function updateStatus(){
+  const n=state.doc?state.doc.stages.length:0, c=state.doc?state.doc.cards.length:0;
+  $('#statusLbl').textContent=n+' stages · '+c+' cards';
+}
+function applyZoom(){
+  const g=$('#grid'); if(!g) return;
+  if(state.zoomMode==='fit'){
+    g.style.zoom=1;
+    const w=g.getBoundingClientRect().width; if(!w) return;
+    const ws=$('#workspace');
+    g.style.zoom=Math.min(1,Math.max(0.55,(ws.clientWidth-36)/w));
+  } else {
+    g.style.zoom=state.zoomMode;
+  }
+  scheduleEdges();
+}
+
+/* ================= render ================= */
+const COLW=294, GAP=14, GUTTER=168;
+function renderAll(){
+  const g=$('#grid');
+  g.style.setProperty('--ncols',(state.doc.stages.length+1));
+  g.innerHTML='';
+  const spacer=document.createElement('div'); g.appendChild(spacer);       // gutter header
+  state.doc.stages.forEach((st,idx)=>{ g.appendChild(stageHead(st,idx)); });
+  g.appendChild(colAddEl());
+  ROWS.filter(r=>state.rowsVisible[r.id]).forEach(row=>{
+    const gut=document.createElement('div'); gut.className='gutter';
+    gut.style.setProperty('--grow-color',row.v);
+    gut.innerHTML='<div class="glabel">'+esc(row.name)+'</div>';
+    g.appendChild(gut);
+    state.doc.stages.forEach(st=>{
+      const cell=document.createElement('div');
+      cell.className='cell'; cell.dataset.stage=st.id; cell.dataset.row=row.id;
+      cell.style.setProperty('--grow-color',row.v);
+      const cards=state.doc.cards.filter(c=>c.stage===st.id&&c.row===row.id);
+      cards.forEach(c=>cell.appendChild(cardEl(c,row)));
+      const ag=document.createElement('div'); ag.className='addghost'; ag.textContent='+ card';
+      ag.addEventListener('click',ev=>{ ev.stopPropagation(); openEditor(null,{stage:st.id,row:row.id},ag); });
+      cell.appendChild(ag);
+      cell.addEventListener('click',ev=>{
+        if(ev.target===cell) openEditor(null,{stage:st.id,row:row.id},cell);
+      });
+      g.appendChild(cell);
+    });
+    g.appendChild(document.createElement('div'));                          // spacer for the add-stage column
+  });
+  updateStatus();
+  applyZoom();
+  scheduleEdges();
+}
+function stageHead(st,idx){
+  const h=document.createElement('div'); h.className='colhead'; h.dataset.sid=st.id;
+  h.innerHTML='<span class="num">'+(idx+1)+'</span><input class="spname" value="'+esc(st.name)+'" spellcheck="false"><button class="del" title="Delete stage">×</button>';
+  const inp=h.querySelector('.spname');
+  inp.addEventListener('input',()=>{ st.name=inp.value; saveSoon(); });
+  inp.addEventListener('change',()=>pushHist(false));
+  inp.addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Enter') inp.blur(); });
+  h.querySelector('.del').addEventListener('click',e=>{ e.stopPropagation(); deleteStage(idx); });
+  h.addEventListener('click',()=>{ selectStage(st.id); });
+  return h;
+}
+function colAddEl(){
+  const a=document.createElement('div'); a.className='coladd'; a.textContent='+ stage';
+  a.addEventListener('click',()=>addStage());
+  return a;
+}
+function cardEl(c,row){
+  const el=document.createElement('div'); el.className='card'; el.dataset.id=c.id;
+  el.style.setProperty('--grow-color',row.v);
+  el.innerHTML='<button class="cedit" title="Edit">⋯</button><div class="ctitle">'+esc(c.title)+'</div>'
+    +(c.note?'<div class="cnote">'+esc(c.note)+'</div>':'');
+  el.querySelector('.cedit').addEventListener('click',e=>{ e.stopPropagation(); openEditor(c,null,el); });
+  el.addEventListener('click',()=>{ if(state.connectMode){ handleConnectClick(c.id); } else selectCard(c.id); });
+  el.addEventListener('pointerdown',e=>{ if(state.connectMode) return; if(e.target.closest('.cedit')) return; startDrag(e,el,c); });
+  return el;
+}
+function selectCard(id){ deselect(); state.sel={type:'card',id}; const el=$('.card[data-id="'+id+'"]'); if(el) el.classList.add('selected'); }
+function selectStage(sid){ deselect(); state.sel={type:'stage',id:sid}; }
+function deselect(){ if(state.sel){ const t=state.sel.type,id=state.sel.id; const el=$(t==='card'?'.card[data-id="'+id+'"]':'.colhead[data-sid="'+id+'"]'); if(el) el.classList.remove('selected'); } state.sel=null; }
+function deleteSelection(){
+  if(!state.sel) return;
+  if(state.sel.type==='card'){ deleteCard(state.sel.id); }
+  else if(state.sel.type==='stage'){ const i=state.doc.stages.findIndex(s=>s.id===state.sel.id); if(i>=0) deleteStage(i); }
+}
+
+/* ================= edges ================= */
+let edgeSched=null;
+function scheduleEdges(){ if(edgeSched) return; edgeSched=requestAnimationFrame(()=>{ edgeSched=null; renderEdges(); }); }
+function renderEdges(){
+  const svg=$('#edges'), grid=$('#grid');
+  if(!state.doc||!state.doc.edges||!state.doc.edges.length){ svg.setAttribute('width',0); svg.setAttribute('height',0); return; }
+  const gb=grid.getBoundingClientRect();
+  const W=grid.scrollWidth,H=grid.scrollHeight;
+  svg.setAttribute('width',W); svg.setAttribute('height',H);
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+  const defs='<defs><marker id="arw" viewBox="0 0 10 10" refX="7.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>';
+  let h=defs;
+  const rowOf=id=>{ const c=state.doc.cards.find(x=>x.id===id); return c?c.row:'gap'; };
+  state.doc.edges.forEach(ed=>{
+    const aEl=$('.card[data-id="'+ed.from+'"]'), bEl=$('.card[data-id="'+ed.to+'"]');
+    if(!aEl||!bEl) return;
+    const ar=aEl.getBoundingClientRect(), br=bEl.getBoundingClientRect();
+    const x1=ar.left-gb.left+ar.width/2, y1=ar.top-gb.top+ar.height;
+    const x2=br.left-gb.left+br.width/2, y2=br.top-gb.top;
+    let d, cx1=x1, cy1=y1, cx2=x2, cy2=y2;
+    if(br.top+br.height < ar.top){            // target above → start at left edge, end at right edge
+      const ax=ar.left-gb.left, ay=ar.top-gb.top+ar.height/2, bx=br.left-gb.left+br.width, by=br.top-gb.top+br.height/2;
+      d='M'+ax+' '+ay+' C'+(ax-80)+' '+ay+', '+(bx+80)+' '+by+', '+bx+' '+by; cx1=ax;cy1=ay;cx2=bx;cy2=by;
+    } else if(br.left < ar.left){             // target left → horizontal
+      const ax=ar.left-gb.left, ay=ar.top-gb.top+ar.height/2, bx=br.left-gb.left+br.width, by=br.top-gb.top+br.height/2;
+      d='M'+ax+' '+ay+' C'+(ax-80)+' '+ay+', '+(bx+80)+' '+by+', '+bx+' '+by; cx1=ax;cy1=ay;cx2=bx;cy2=by;
+    } else {
+      const dy=y2-y1;
+      cy1=y1+Math.max(58,dy/2); cy2=y2-Math.max(58,-dy/2);
+      d='M'+x1+' '+y1+' C'+x1+' '+cy1+', '+x2+' '+cy2+', '+x2+' '+y2;
+    }
+    const hex=ROWMAP[rowOf(ed.from)]?ROWMAP[rowOf(ed.from)].hex:'#999';
+    h+='<path d="'+d+'" fill="none" stroke="'+hex+'99" stroke-width="3" marker-end="url(#arw)" stroke-linecap="round"/>';
+  });
+  svg.innerHTML=h;
+}
+
+/* ================= drag ================= */
+function startDrag(e,el,c){
+  if(e.button!==0) return;
+  state.drag={el,c,px:e.clientX,py:e.clientY,started:false, ph:null, offX:0,offY:0,srcCell:el.closest('.cell')};
+  el.setPointerCapture(e.pointerId);
+  el.addEventListener('pointermove',onDragMove);
+  el.addEventListener('pointerup',onDragUp);
+  el.addEventListener('pointercancel',onDragUp);
+}
+function onDragMove(e){
+  const d=state.drag; if(!d) return;
+  if(!d.started){
+    if(Math.hypot(e.clientX-d.px,e.clientY-d.py)<6) return;
+    d.started=true;
+    const r=d.el.getBoundingClientRect();
+    d.offX=e.clientX-r.left; d.offY=e.clientY-r.top;
+    d.ph=document.createElement('div'); d.ph.style.height=r.height+'px'; d.ph.style.opacity='.25';
+    d.el.before(d.ph);
+    d.el.classList.add('dragging');
+    d.el.style.width=r.width+'px';
+  }
+  d.el.style.left=(e.clientX-d.offX)+'px';
+  d.el.style.top=(e.clientY-d.offY)+'px';
+  $$('.cell').forEach(c=>c.classList.remove('dragover'));
+  const t=document.elementFromPoint(e.clientX,e.clientY);
+  const cell=t&&t.closest('.cell');
+  if(cell&&cell!==d.srcCell) cell.classList.add('dragover');
+}
+function onDragUp(e){
+  const d=state.drag; if(!d) return;
+  state.drag=null;
+  d.el.classList.remove('dragging');
+  d.el.style.left=d.el.style.top=d.el.style.width='';
+  if(d.started){
+    const t=document.elementFromPoint(e.clientX,e.clientY);
+    const cell=t&&t.closest('.cell');
+    if(cell){
+      const cards=document.elementsFromPoint(e.clientX,e.clientY).filter(x=>x.classList&&x.classList.contains('card')&&x.closest('.cell')===cell);
+      const before=cards[0]||null;
+      if(before) cell.insertBefore(d.el,before); else cell.appendChild(d.el);
+      d.c.stage=cell.dataset.stage; d.c.row=cell.dataset.row;
+    }
+  }
+  if(d.ph){ d.ph.remove(); }
+  syncOrderFromDOM();
+  $$('.cell').forEach(c=>c.classList.remove('dragover'));
+  commit();
+}
+
+/* ================= connect mode ================= */
+function setConnect(on){
+  state.connectMode=on; state.edgeFrom=null;
+  $('#btnConnect').classList.toggle('active',on);
+  document.body.classList.toggle('connectmode',on);
+  $$('.card.hint-source').forEach(x=>x.classList.remove('hint-source'));
+  toast(on?'Connect mode: click the start card, then the target. Esc to exit.':'');
+}
+function handleConnectClick(id){
+  if(state.edgeFrom===null){
+    state.edgeFrom=id;
+    $$('.card.hint-source').forEach(x=>x.classList.remove('hint-source'));
+    const el=$('.card[data-id="'+id+'"]'); if(el) el.classList.add('hint-source');
+  } else {
+    const from=state.edgeFrom; state.edgeFrom=null;
+    $$('.card.hint-source').forEach(x=>x.classList.remove('hint-source'));
+    if(from===id){ toast('Same card — pick two different cards.'); return; }
+    state.doc.edges=state.doc.edges||[];
+    const i=state.doc.edges.findIndex(x=>x.from===from&&x.to===id);
+    if(i>=0){ state.doc.edges.splice(i,1); toast('Connection removed.'); }
+    else{ state.doc.edges.push({from,to:id}); toast('Connected.'); }
+    commit();
+  }
+}
+
+/* ================= editor ================= */
+let editing=null;                    // {card} or {new:true,stage,row}
+function openEditor(card,newSpec,anchor){
+  const ed=$('#editor');
+  editing=card?{card}:{new:true,...newSpec};
+  $('#eTitle').value=card?card.title:'';
+  $('#eNote').value=card?(card.note||''):'';
+  const row=card?ROWMAP[card.row]:(newSpec?ROWMAP[newSpec.row]:ROWS[0]);
+  $('#eDot').style.background=row?vartorow(row):'#bbb';
+  $('#eType').textContent=card?'Card in '+row.name:'New card — '+row.name;
+  ed.style.display='flex';
+  const r=(anchor&&anchor.getBoundingClientRect())||(card&&$('.card[data-id="'+card.id+'"]').getBoundingClientRect());
+  const ew=280, eh=230;
+  ed.style.left=clamp(r.left-24,8,innerWidth-ew-8)+'px';
+  ed.style.top=clamp(r.bottom+10,8,innerHeight-eh-8)+'px';
+  $('#eTitle').focus(); $('#eTitle').select();
+}
+function vartorow(row){ return row.v.replace('var(','').replace(')',''); }  // rough; used only for dot color
+function closeEditor(){ const ed=$('#editor'); editing=null; ed.style.display='none'; }
+function saveEditor(){
+  if(!editing) return;
+  const t=$('#eTitle').value.trim()||'Untitled';
+  const n=$('#eNote').value.trim();
+  if(editing.new){
+    const card={id:uid(),stage:editing.stage,row:editing.row,title:t,note:n};
+    state.doc.cards.push(card);
+    const cell=$('.cell[data-stage="'+card.stage+'"]');
+    const cell2=$('.cell[data-stage="'+card.stage+'"][data-row="'+card.row+'"]');
+    editing=null; closeEditor();
+    // targeted insert (no full re-render — keeps any in-progress drag alive)
+    if(cell2){
+      const el=cardEl(card,ROWMAP[card.row]);
+      const ag=cell2.querySelector('.addghost');
+      if(ag) cell2.insertBefore(el,ag); else cell2.appendChild(el);
+      pushHist(false); updateStatus(); scheduleEdges(); saveSoon();
+      selectCard(card.id);
+      el.scrollIntoView({block:'nearest'});
+    } else {
+      commit();
+    }
+  } else {
+    const c=editing.card; c.title=t; c.note=n;
+    pushHist(false);
+    const el=$('.card[data-id="'+c.id+'"]');
+    if(el){ el.querySelector('.ctitle').textContent=t; const nx=el.querySelector('.cnote');
+      if(n) { if(nx) nx.textContent=n; else { const d=document.createElement('div'); d.className='cnote'; d.textContent=n; el.appendChild(d); } }
+      else if(nx) nx.remove();
+    }
+    saveSoon();
+  }
+}
+
+/* ================= toolbar / misc wiring ================= */
+function initEvents(){
+  const ws=$('#workspace');
+  // clicking anywhere outside the editor commits what's typed (incl. toolbar)
+  document.addEventListener('mousedown',e=>{
+    if(!editing) return;
+    if(e.target.closest && e.target.closest('#editor')) return;
+    saveEditor(); closeEditor();
+  },true);
+  ws.addEventListener('mousedown',e=>{
+    if(e.target.closest('.editor')) return;
+    if(!e.target.closest('.card')&&!e.target.closest('.colhead')) deselect();
+    if(editing) { saveEditor(); closeEditor(); }
+    else closeEditor();
+    $('#tplMenu').style.display='none';
+    if(!e.target.closest('.colhead')&&!e.target.closest('.card')&&!e.target.closest('.tpl')&&state.connectMode){ setConnect(false); }
+  });
+
+  $('#mapTitle').addEventListener('input',()=>{ state.doc.title=$('#mapTitle').value; saveSoon(); });
+  $('#mapTitle').addEventListener('change',()=>pushHist(false));
+  $('#btnStage').addEventListener('click',()=>addStage());
+  $('#btnConnect').addEventListener('click',()=>setConnect(!state.connectMode));
+  $('#btnUndo').addEventListener('click',()=>doUndo());
+  $('#btnRedo').addEventListener('click',()=>doRedo());
+  $('#btnSave').addEventListener('click',saveJSON);
+  $('#btnLoad').addEventListener('click',()=>$('#fileInput').click());
+  $('#fileInput').addEventListener('change',loadJSONFile);
+  $('#btnPng').addEventListener('click',()=>exportPNG());
+  $('#btnPdf').addEventListener('click',()=>window.print());
+  $('#zoomSel').addEventListener('change',e=>{ state.zoomMode=e.target.value; applyZoom(); });
+  window.addEventListener('resize',()=>{ if(state.zoomMode==='fit') applyZoom(); });
+  $('#btnHelp').addEventListener('click',()=>$('#modalHelp').style.display='flex');
+  $('#helpClose').addEventListener('click',()=>$('#modalHelp').style.display='none');
+  $('#modalHelp').addEventListener('click',e=>{ if(e.target.id==='modalHelp') $('#modalHelp').style.display='none'; });
+
+  $('#btnTpl').addEventListener('click',e=>{ e.stopPropagation(); $('#tplMenu').style.display='flex'; });
+  $('#tplMenu').addEventListener('click',e=>{
+    const t=e.target.closest('[data-tpl]');
+    if(t){ applyTemplate(t.dataset.tpl); $('#tplMenu').style.display='none'; return; }
+    if(e.target.id==='tplClear'){
+      $('#tplMenu').style.display='none';
+      if(confirm('Replace the current map with a blank one?')) applyTemplate('blank');
+    }
+    if(e.target===e.currentTarget){ e.currentTarget.style.display='none'; }
+  });
+
+  // empty state
+  $$('#empty .tpl').forEach(t=>t.addEventListener('click',()=>applyTemplate(t.dataset.tpl)));
+
+  // row chips
+  renderRowChips();
+  $('#btnAddRow').addEventListener('click',addCustomRow);
+
+  // editor
+  $('#eTitle').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); saveEditor(); closeEditor(); } });
+  $('#eDelete').addEventListener('click',()=>{
+    if(editing&&editing.card){ const id=editing.card.id; closeEditor(); deleteCard(id); }
+  });
+
+  ws.addEventListener('keydown',onKey);
+}
+function renderRowChips(){
+  const box=$('#rowChips'); box.innerHTML='';
+  ROWS.forEach(r=>{
+    const chip=document.createElement('div'); chip.className='chip'+(state.rowsVisible[r.id]?'':' off');
+    chip.innerHTML='<span class="dot" style="background:'+r.hex+'"></span>'+esc(r.name);
+    chip.addEventListener('click',()=>{
+      state.rowsVisible[r.id]=!state.rowsVisible[r.id];
+      renderRowChips(); renderAll();
+      if(!state.rowsVisible[r.id]) toast('Hidden: '+r.name);
+    });
+    box.appendChild(chip);
+  });
+}
+function addCustomRow(){
+  const name=prompt('Lane name (e.g. “Automation & triggers”):');
+  if(!name||!name.trim()) return;
+  ROWS.push({id:'custom'+Date.now().toString(36),name:name.trim(),v:'#8a7db5',hex:'#8a7db5'});
+  ROWMAP[ROWS[ROWS.length-1].id]=ROWS[ROWS.length-1];
+  state.rowsVisible[ROWS[ROWS.length-1].id]=true;
+  renderRowChips();
+  commit();
+  toast('Added lane: '+name.trim());
+}
+function onKey(e){
+  const tag=(e.target.tagName||'').toUpperCase();
+  const typing=tag==='INPUT'||tag==='TEXTAREA'||e.target.isContentEditable;
+  if((e.key==='Delete'||e.key==='Backspace')&&!typing){ e.preventDefault(); deleteSelection(); return; }
+  if(e.key==='Escape'){
+    if(editing) closeEditor();
+    else if(state.connectMode){ setConnect(false); }
+    else { deselect(); }
+    return;
+  }
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){
+    e.preventDefault();
+    if(e.shiftKey) doRedo(); else doUndo();
+  }
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){ e.preventDefault(); doRedo(); }
+}
+function applyTemplate(key){
+  const doc=TEMPLATES[key]();
+  doc.edges=[];
+  document.title=doc.title+' — JourneyMap';
+  applyDoc(doc);
+  toast('Loaded: '+doc.title);
+}
+
+/* ================= file save / load ================= */
+function dl(blob,name){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},400); }
+function slug(s){ return (String(s||'donor-journey').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40))||'donor-journey'; }
+function saveJSON(){
+  if(!state.doc) return;
+  dl(new Blob([JSON.stringify({app:'journeymap',v:1,doc:state.doc},null,2)],{type:'application/json'}), slug(state.doc.title)+'.journeymap.json');
+  toast('Saved file');
+}
+function loadJSONFile(e){
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const j=JSON.parse(rd.result);
+      const d=j.doc||j;
+      if(!(d&&Array.isArray(d.stages))) throw 0;
+      d.cards=Array.isArray(d.cards)?d.cards:[];
+      d.edges=Array.isArray(d.edges)?d.edges:[];
+      applyDoc(d);
+      toast('Opened: '+(d.title||f.name));
+    }catch(err){ toast('That file doesn\'t look like a JourneyMap'); }
+    e.target.value='';
+  };
+  rd.readAsText(f);
+}
+
+/* ================= PNG export ================= */
+function wrapCount(text,maxW,fs){ const cpl=Math.max(8,Math.floor(maxW/(fs*0.53))); let lines=1,n=0; for(const w of String(text).split(/\s+/)){ if(w.length>0&&n+w.length+ (n?1:0)>cpl){ lines++; n=w.length; } else n+=w.length+(n?1:0); } return lines; }
+function wrapLines(text,maxW,fs,maxLines){
+  const cpl=Math.max(8,Math.floor(maxW/(fs*0.53)));
+  const words=String(text).split(/\s+/); const out=[]; let cur='';
+  for(const w of words){
+    if(!cur){ cur=w; continue; }
+    if((cur+' '+w).length>cpl){ out.push(cur); cur=w; if(out.length>=maxLines) return out; }
+    else cur+=' '+w;
+  }
+  if(cur) out.push(cur);
+  return out.slice(0,maxLines);
+}
+function buildExportSVG(){
+  const doc=state.doc;
+  const visible=ROWS.filter(r=>state.rowsVisible[r.id]);
+  const pad=44, titleH=62, headH=54, rowGap=20, cardGap=9, cellPad=8;
+  const n=doc.stages.length;
+  const xOf=c=>pad+GUTTER+c*(COLW+GAP);
+  const areaW=pad+GUTTER+n*COLW+(n-1)*GAP+pad;
+  const TFS=13, NFS=12, TLH=17, NLH=15.5;
+  // ---- measure: one record per card (title + note wrapped, height derived from the same lines we draw)
+  const recs=[];
+  visible.forEach((r,ri)=>{
+    doc.stages.forEach((s,ci)=>{
+      doc.cards.filter(c=>c.stage===s.id&&c.row===r.id).forEach(c=>{
+        const tl=wrapLines(c.title||'Untitled',COLW-40,TFS,2);
+        const nl=c.note?wrapLines(c.note,COLW-40,NFS,5):[];
+        const h=24+tl.length*TLH+(nl.length?7+nl.length*NLH:0)+7;
+        recs.push({c,r,ri,ci,tl,nl,h});
+      });
+    });
+  });
+  const cellCards=(ri,ci)=>recs.filter(x=>x.ri===ri&&x.ci===ci);
+  const cellH=(ri,ci)=>{ const cs=cellCards(ri,ci); return cs.length? cellPad*2+cs.reduce((a,x)=>a+x.h+cardGap,0)-cardGap : 74; };
+  const rowHs=visible.map((r,ri)=>Math.max(74,...doc.stages.map((s,ci)=>cellH(ri,ci))));
+  const headTop=pad+titleH;
+  let yy=headTop+headH+18;
+  const rowY=rowHs.map(hh=>{ const v=yy; yy+=hh+rowGap; return v; });
+  const H=yy-rowGap+pad;
+  const rects=new Map();
+  visible.forEach((r,ri)=>{
+    doc.stages.forEach((s,ci)=>{
+      let cy=rowY[ri]+cellPad;
+      cellCards(ri,ci).forEach(x=>{ rects.set(x.c.id,{x:xOf(ci)+7,y:cy,w:COLW-14,h:x.h}); cy+=x.h+cardGap; });
+    });
+  });
+  const F="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif";
+  let h='<svg xmlns="http://www.w3.org/2000/svg" width="'+(areaW*2)+'" height="'+(H*2)+'" viewBox="0 0 '+areaW+' '+H+'" font-family="'+F+'">';
+  h+='<defs><marker id="arwX" viewBox="0 0 10 10" refX="7.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>';
+  h+='<rect width="'+areaW+'" height="'+H+'" fill="#fbfaf7"/>';
+  h+='<text x="'+pad+'" y="36" font-size="26" font-weight="750" fill="#26221b">'+esc(doc.title||'Donor journey')+'</text>';
+  const today=new Date().toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
+  h+='<text x="'+pad+'" y="56" font-size="11.5" fill="#8b8374">Prepared '+esc(today)+' · '+n+' stages · '+doc.cards.length+' cards</text>';
+  let lx=areaW-pad;
+  visible.slice().reverse().forEach(r=>{ const nm=esc(r.name), w=nm.length*7.2+46; lx-=w;
+    h+='<rect x="'+lx+'" y="27" width="9" height="9" rx="4.5" fill="'+r.hex+'"/><text x="'+(lx+18)+'" y="36" font-size="11.5" font-weight="600" fill="#6f6859">'+nm+'</text>'; });
+  // ---- stage headers (own band, above the first lane row)
+  doc.stages.forEach((s,ci)=>{
+    const hx=xOf(ci), cyc=headTop+headH/2;
+    h+='<rect x="'+hx+'" y="'+headTop+'" width="'+COLW+'" height="'+headH+'" rx="11" fill="#26221b"/>';
+    h+='<circle cx="'+(hx+22)+'" cy="'+cyc+'" r="10.5" fill="#ffffff26"/>';
+    h+='<text x="'+(hx+22)+'" y="'+(cyc+4)+'" text-anchor="middle" font-size="11.5" font-weight="700" fill="#ffffffd9">'+(ci+1)+'</text>';
+    const sn=wrapLines(s.name,COLW-64,13.5,2);
+    sn.forEach((ln,i)=>{ h+='<text x="'+(hx+40)+'" y="'+(cyc+4.5-((sn.length-1)*8)+(i*16))+'" font-size="13.5" font-weight="700" fill="#ffffff">'+esc(ln)+'</text>'; });
+  });
+  // ---- lanes: separators, labels, empty-cell placeholders
+  visible.forEach((r,ri)=>{
+    const ry=rowY[ri], rh=rowHs[ri];
+    h+='<line x1="'+(pad+GUTTER-16)+'" y1="'+(ry-7)+'" x2="'+(areaW-pad)+'" y2="'+(ry-7)+'" stroke="#e9e2d3"/>';
+    wrapLines(r.name,GUTTER-26,12,2).forEach((ln,i)=>{ h+='<text x="'+pad+'" y="'+(ry+18+i*15)+'" font-size="12" font-weight="650" fill="#8b8374">'+esc(ln)+'</text>'; });
+    h+='<rect x="'+pad+'" y="'+(ry+6)+'" width="3.5" height="14" rx="1.7" fill="'+r.hex+'"/>';
+    doc.stages.forEach((s,ci)=>{
+      if(!cellCards(ri,ci).length){
+        const ch=Math.max(40,rh-cellPad*2);
+        h+='<rect x="'+(xOf(ci)+7)+'" y="'+(ry+cellPad)+'" width="'+(COLW-14)+'" height="'+ch+'" rx="9" fill="none" stroke="#e0d8c6" stroke-dasharray="6 5"/>';
+        h+='<text x="'+(xOf(ci)+7+(COLW-14)/2)+'" y="'+(ry+cellPad+ch/2+4)+'" text-anchor="middle" font-size="11" font-weight="600" fill="#c4baa2">+ card</text>';
+      }
+    });
+  });
+  // ---- flow arrows
+  const edgePath=(a,b)=>{ const x1=a.x+a.w/2,y1=a.y+a.h,x2=b.x+b.w/2,y2=b.y;
+    if(b.y+b.h<a.y||b.x<a.x){ const ax=a.x,ay=a.y+a.h/2,bx=b.x+b.w,by=b.y+b.h/2; return 'M'+ax+' '+ay+' C'+(ax-80)+' '+ay+', '+(bx+80)+' '+by+', '+bx+' '+by; }
+    const dy=y2-y1,cy1=y1+Math.max(58,dy/2),cy2=y2-Math.max(58,-dy/2);
+    return 'M'+x1+' '+y1+' C'+x1+' '+cy1+', '+x2+' '+cy2+', '+x2+' '+y2; };
+  (doc.edges||[]).forEach(ed=>{ const a=rects.get(ed.from), b=rects.get(ed.to); if(!a||!b) return;
+    const c=doc.cards.find(x=>x.id===ed.from); const hex=((ROWMAP[c?c.row:'gap'])||{}).hex||'#999';
+    h+='<path d="'+edgePath(a,b)+'" fill="none" stroke="'+hex+'99" stroke-width="3" stroke-linecap="round" marker-end="url(#arwX)"/>';
+  });
+  // ---- cards
+  recs.forEach(x=>{
+    const rc=rects.get(x.c.id); if(!rc) return;
+    h+='<rect x="'+rc.x+'" y="'+rc.y+'" width="'+rc.w+'" height="'+rc.h+'" rx="9" fill="#ffffff" stroke="#e3dccd"/>';
+    h+='<rect x="'+rc.x+'" y="'+rc.y+'" width="4" height="'+rc.h+'" rx="2" fill="'+x.r.hex+'"/>';
+    const tx=rc.x+15;
+    let ty=rc.y+20;
+    x.tl.forEach((ln,i)=>{ h+='<text x="'+tx+'" y="'+(ty+i*TLH)+'" font-size="'+TFS+'" font-weight="700" fill="#26221b">'+esc(ln)+'</text>'; });
+    ty+=(x.tl.length-1)*TLH;
+    if(x.nl.length){ ty+=7+NLH; x.nl.forEach((ln,i)=>{ h+='<text x="'+tx+'" y="'+(ty+i*NLH)+'" font-size="'+NFS+'" fill="#57503f">'+esc(ln)+'</text>'; }); }
+  });
+  h+='</svg>';
+  return h;
+}
+function exportPNG(){
+  if(!state.doc) return;
+  const svgStr=buildExportSVG();
+  const url=URL.createObjectURL(new Blob([svgStr],{type:'image/svg+xml;charset=utf-8'}));
+  const img=new Image();
+  img.onload=()=>{
+    const c=document.createElement('canvas');
+    c.width=img.naturalWidth; c.height=img.naturalHeight;
+    c.getContext('2d').drawImage(img,0,0);
+    c.toBlob(b=>{
+      dl(b,slug(state.doc.title)+'.png');
+      URL.revokeObjectURL(url);
+      toast('PNG exported');
+    },'image/png');
+  };
+  img.onerror=()=>{ URL.revokeObjectURL(url); toast('Export failed — try PDF instead'); };
+  img.src=url;
+}
+
+/* ================= init ================= */
+function hideEmpty(){ $('#empty').style.display='none'; document.body.classList.remove('premap'); }
+function init(){
+  initEvents();
+  const saved=loadSaved();
+  if(saved){
+    saved.cards=saved.cards||[]; saved.edges=saved.edges||[];
+    state.doc=saved;
+    $('#mapTitle').value=saved.title||'';
+    hideEmpty();
+    renderAll();
+    updateUndo();
+    document.title=(saved.title||'Donor journey')+' — JourneyMap';
+    toast('Restored your last map');
+  }
+  const h=(location.hash||'').replace('#','');
+  if(!state.doc&&TEMPLATES[h]) setTimeout(()=>applyTemplate(h),0);
+  setTimeout(applyZoom,50);
+  saveSoon();
+}
+init();
+</script>
+</body>
+</html>
