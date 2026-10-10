@@ -954,15 +954,24 @@ function onDragMove(e){
   if(!d.started){
     if(Math.hypot(e.clientX-d.px,e.clientY-d.py)<6) return;
     d.started=true;
+    const grid=$('#grid');
+    const gb=grid.getBoundingClientRect();
+    // the dragged card stays inside the (CSS-zoomed) grid, so its fixed coordinates are
+    // layout px — but the cursor and rects are visual px. Dividing by the live zoom ratio
+    // keeps the card glued to the cursor instead of shrinking/jumping away from it.
+    d.z=(grid.offsetWidth?gb.width/grid.offsetWidth:1)||1;
     const r=d.el.getBoundingClientRect();
-    d.offX=e.clientX-r.left; d.offY=e.clientY-r.top;
-    d.ph=document.createElement('div'); d.ph.style.height=r.height+'px'; d.ph.style.opacity='.25';
+    // anchor to the PRESS point (d.px/d.py), not the threshold-trigger point — the
+    // card must not shift even the small distance the cursor traveled before the
+    // drag threshold was crossed (that feels like a jump to the user).
+    d.offX=d.px-r.left; d.offY=d.py-r.top;
+    d.ph=document.createElement('div'); d.ph.style.height=(r.height/d.z)+'px'; d.ph.style.opacity='.25';
     d.el.before(d.ph);
     d.el.classList.add('dragging');
-    d.el.style.width=r.width+'px';
+    d.el.style.width=(r.width/d.z)+'px';
   }
-  d.el.style.left=(e.clientX-d.offX)+'px';
-  d.el.style.top=(e.clientY-d.offY)+'px';
+  d.el.style.left=((e.clientX-d.offX)/d.z)+'px';
+  d.el.style.top=((e.clientY-d.offY)/d.z)+'px';
   scheduleEdges();                      // connectors follow the card live while dragging
   $$('.cell').forEach(c=>c.classList.remove('dragover'));
   const t=document.elementFromPoint(e.clientX,e.clientY);
