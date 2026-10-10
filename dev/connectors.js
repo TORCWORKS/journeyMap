@@ -81,20 +81,38 @@ function check(name, ok, detail) { CHECKS.push({ name, ok, detail }); }
   }
 
   const z1 = await measure('fit-zoom');
+
+  // D-006: the dragged card must stay glued to the cursor at ANY zoom
+  async function trackTest(label) {
+    const src = await page.locator('.card').nth(1).boundingBox();
+    const endX = src.x + 150, endY = src.y + 100;
+    await page.mouse.move(src.x + src.width / 2, src.y + src.height / 2);
+    await page.mouse.down();
+    // fine-grained steps mimic real continuous pointermoves; coarse jumps (e.g. 12)
+    // trigger the drag threshold mid-jump and skew the anchor by one step
+    await page.mouse.move(endX, endY, { steps: 72 });
+    await page.waitForTimeout(60);
+    const t = await page.evaluate(() => {
+      const el = document.querySelector('.card.dragging');
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { cx: r.left + r.width / 2, cy: r.top + r.height / 2, w: r.width, h: r.height };
+    });
+    check(`${label}: dragged card stays glued to the cursor`, !!t && Math.hypot(t.cx - endX, t.cy - endY) < 2, t ? `card=(${t.cx.toFixed(1)},${t.cy.toFixed(1)}) cursor=(${endX.toFixed(1)},${endY.toFixed(1)})` : 'no dragging card');
+    const d2 = await page.evaluate(() => document.querySelector('#edges path[marker-end]') && document.querySelector('#edges path[marker-end]').getAttribute('d'));
+    await page.mouse.up();
+    await page.waitForTimeout(200);
+    return d2;
+  }
+  const duringFit = await trackTest('fit-zoom');
+  check('connector follows the card during drag (fit-zoom)', duringFit && z1 !== duringFit, 'path changed while dragging');
+
   await page.selectOption('#zoomSel', '1');
   await page.waitForTimeout(350);
   await measure('100%');
-
-  // and the connectors must follow a dragged card
-  const before = await page.evaluate(() => document.querySelector('#edges path[marker-end]').getAttribute('d'));
-  const from = await page.locator('.card').nth(1).boundingBox();
-  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(from.x + 140, from.y + 120, { steps: 12 });
-  const during = await page.evaluate(() => document.querySelector('#edges path[marker-end]').getAttribute('d'));
-  await page.mouse.up();
-  await page.waitForTimeout(200);
-  check('connector follows the card during drag', before !== during, 'path changed while dragging');
+  const before = await page.evaluate(() => document.querySelector('#edges path[marker-end]') ? document.querySelector('#edges path[marker-end]').getAttribute('d') : null);
+  const during100 = await trackTest('100%');
+  check('connector follows the card during drag (100%)', before !== during100, 'path changed while dragging');
 
   check('no console/page errors', errors.length === 0, errors.join(' | ') || 'clean');
 
