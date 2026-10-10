@@ -127,6 +127,9 @@
     font-size:12px;font-weight:650;color:var(--muted);letter-spacing:.03em;line-height:1.35;
     padding:4px 10px 4px 2px;border-left:3px solid var(--grow-color,var(--line));padding-left:8px;
   }
+  .gutter .gq{
+    font-size:10.5px;color:#a39a86;line-height:1.4;padding:0 10px 0 11px;margin-top:1px;
+  }
   .cell{
     min-height:64px;border-radius:10px;border:2px dashed #e2dac8;
     padding:6px;display:flex;flex-direction:column;gap:8px;position:relative;transition:background .1s,border-color .1s;
@@ -186,6 +189,7 @@
   .editor input:focus,.editor textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
   .editor textarea{resize:vertical;min-height:56px;line-height:1.45}
   .editor .efoot{display:flex;justify-content:space-between;align-items:center;margin-top:2px}
+  .editor .eq{font-size:11px;color:#8b8374;font-style:italic;line-height:1.4}
   .editor .hint{font-size:10.5px;color:var(--muted)}
 
   /* ---------- empty state ---------- */
@@ -299,6 +303,7 @@
 
   <div id="editor" class="editor" style="display:none">
     <div class="ehead"><span id="eDot" class="eyr" style="background:#bbb"></span><span id="eType" class="etyp">Card</span></div>
+    <div id="eQ" class="eq"></div>
     <div>
       <label for="eTitle">Title</label>
       <input id="eTitle" type="text" spellcheck="false">
@@ -355,11 +360,13 @@ function toast(msg,ms=2200){
 
 /* ================= lanes (per document) ================= */
 const DEFAULT_ROWS=[
-  {id:'exp',name:'Donor experience',v:'var(--r-exp)',hex:'#e97f4c'},
-  {id:'ch', name:'Channels & touchpoints',v:'var(--r-ch)',hex:'#5b8ec9'},
-  {id:'act',name:'Org actions',v:'var(--r-act)',hex:'#4f9d6d'},
-  {id:'gap',name:'Gaps & opportunities',v:'var(--r-gap)',hex:'#c25353'},
+  {id:'exp',name:'Donor experience',q:'What does the donor think, feel, or decide at this stage?',v:'var(--r-exp)',hex:'#e97f4c'},
+  {id:'ch', name:'Channels & touchpoints',q:'How are we actively engaging them at this stage?',v:'var(--r-ch)',hex:'#5b8ec9'},
+  {id:'act',name:'Org actions',q:'What do we do here — who acts, when, with what deliverable?',v:'var(--r-act)',hex:'#4f9d6d'},
+  {id:'gap',name:'Gaps & opportunities',q:'What\'s missing, broken, or a missed opportunity here?',v:'var(--r-gap)',hex:'#c25353'},
 ];
+const ROW_Q_FALLBACK='What happens on this lane at this stage?';
+function rowQ(r){ if(r&&r.q) return r.q; const d=DEFAULT_ROWS.find(x=>x.id===(r&&r.id)); return d?d.q:ROW_Q_FALLBACK; }
 const DEFAULT_ROW_IDS=DEFAULT_ROWS.map(r=>r.id);
 function ensureRows(doc){
   // Idempotent + in-place: NEVER reassigns an already-valid doc.rows with copies —
@@ -380,7 +387,7 @@ function getRow(id){
 
 /* ================= templates ================= */
 function mkCards(stages,defs){ return defs.map(d=>({id:uid(),stage:stages[d.s].id,row:d.row,title:d.title,note:d.note})); }
-const EPS={id:'eps',name:'Recurring episodes',v:'#8a7db5',hex:'#8a7db5'};
+const EPS={id:'eps',name:'Recurring episodes',q:'Which recurring asks, events, or cycles land on this stage?',v:'#8a7db5',hex:'#8a7db5'};
 const BASE4=()=>DEFAULT_ROWS.map(r=>({...r}));
 
 function TPL_annual_giving(){
@@ -425,7 +432,7 @@ function TPL_annual_giving(){
 function TPL_change_makers(){
   const st=[
     {id:uid(),name:'Discover'},{id:uid(),name:'Start fundraising'},{id:uid(),name:'Mobilize (ask the network)'},{id:uid(),name:'Donations flow'},{id:uid(),name:'Impact & thanks'},{id:uid(),name:'Retain for next year'}];
-  return {title:'Change Makers — peer-to-peer',stages:st,rows:[...BASE4(),{...EPS,name:'Campaign calendar'}],
+  return {title:'Change Makers — peer-to-peer',stages:st,rows:[...BASE4().map(r=>r.id==='ch'?{...r,q:'How are we helping fundraisers reach their networks here?'}:(r.id==='act'?{...r,q:'What do we do to support fundraisers at this stage?'}:r)),{...EPS,name:'Campaign calendar',q:'Where do launch, match, and alumni asks land in the year?'}],
     cards:mkCards(st,[
     {s:0,row:'exp',title:'Inspired by a participant\'s story',note:'Or invited by a friend mid-campaign. The story is the hook, not the cause page.'},
     {s:0,row:'ch',title:'Friend\'s page · social share · launch posts',note:'Peer-to-peer grows along real relationships — design for that.'},
@@ -460,9 +467,11 @@ function TPL_signature_events(){
   const st=[
     {id:uid(),name:'Discovery'},{id:uid(),name:'Invitation'},{id:uid(),name:'Registration & tables'},{id:uid(),name:'The event'},{id:uid(),name:'Post-event'},{id:uid(),name:'Retention'}];
   return {title:'Signature event — donor journey',stages:st,rows:[
-    {id:'exp',name:'Attendee experience',v:'var(--r-exp)',hex:'#e97f4c'},{id:'ch',name:'Touchpoints',v:'var(--r-ch)',hex:'#5b8ec9'},
-    {id:'act',name:'Org actions',v:'var(--r-act)',hex:'#4f9d6d'},{id:'gap',name:'Gaps & opportunities',v:'var(--r-gap)',hex:'#c25353'},
-    {...EPS,name:'Annual cycle'}],
+    {id:'exp',name:'Attendee experience',q:'What does the guest think, feel, or decide at this stage?',v:'var(--r-exp)',hex:'#e97f4c'},
+    {id:'ch',name:'Touchpoints',q:'Which touchpoints move them — invite, portal, event, follow-up?',v:'var(--r-ch)',hex:'#5b8ec9'},
+    {id:'act',name:'Org actions',q:'What do we prepare, deliver, or follow up on here?',v:'var(--r-act)',hex:'#4f9d6d'},
+    {id:'gap',name:'Gaps & opportunities',q:'Where do guests slip between invitation and attendance?',v:'var(--r-gap)',hex:'#c25353'},
+    {...EPS,name:'Annual cycle',q:'Where do the yearly event milestones sit around this stage?'}],
     cards:mkCards(st,[
     {s:0,row:'exp',title:'Hears about “the big night”',note:'Reputation precedes the event. Who they sit with is half the product.'},
     {s:0,row:'ch',title:'Board & committee mentions · past guests',note:'The guest list is built on relationships, not ads.'},
@@ -524,7 +533,7 @@ function TPL_community_events(){
 function TPL_planned_giving(){
   const st=[
     {id:uid(),name:'Awareness'},{id:uid(),name:'Bequest intent'},{id:uid(),name:'Conversation'},{id:uid(),name:'Documentation'},{id:uid(),name:'Notification'},{id:uid(),name:'Recognition'}];
-  return {title:'Planned giving — legacy journey',stages:st,rows:BASE4(),
+  return {title:'Planned giving — legacy journey',stages:st,rows:BASE4().map(r=>r.id==='exp'?{...r,q:'What is the donor feeling or deciding in this delicate moment?'}:r),
     cards:mkCards(st,[
     {s:0,row:'exp',title:'Long-time donor — loyalty without a plan',note:'Supports the mission, has never connected it to their estate.'},
     {s:0,row:'ch',title:'Website legacy page · donor stories',note:'Real legacy donors told well make the idea normal.'},
@@ -556,9 +565,11 @@ function TPL_corporate(){
   const st=[
     {id:uid(),name:'Identify'},{id:uid(),name:'Research & approach'},{id:uid(),name:'Proposal'},{id:uid(),name:'Negotiation'},{id:uid(),name:'Activation'},{id:uid(),name:'Renewal'}];
   return {title:'Corporate sponsorship — partner journey',stages:st,rows:[
-    {id:'exp',name:'Partner experience',v:'var(--r-exp)',hex:'#e97f4c'},{id:'ch',name:'Documents & touchpoints',v:'var(--r-ch)',hex:'#5b8ec9'},
-    {id:'act',name:'Org actions',v:'var(--r-act)',hex:'#4f9d6d'},{id:'gap',name:'Gaps & opportunities',v:'var(--r-gap)',hex:'#c25353'},
-    {...EPS,name:'Renewal cycle'}],
+    {id:'exp',name:'Partner experience',q:'What does the company need, want, or worry about at this stage?',v:'var(--r-exp)',hex:'#e97f4c'},
+    {id:'ch',name:'Documents & touchpoints',q:'Which documents and touchpoints move the stage forward?',v:'var(--r-ch)',hex:'#5b8ec9'},
+    {id:'act',name:'Org actions',q:'Who owns the relationship here and what do they deliver?',v:'var(--r-act)',hex:'#4f9d6d'},
+    {id:'gap',name:'Gaps & opportunities',q:'Where do partnerships stall or get forgotten?',v:'var(--r-gap)',hex:'#c25353'},
+    {...EPS,name:'Renewal cycle',q:'Where do check-ins, reports, and renewal asks fit in the year?'}],
     cards:mkCards(st,[
     {s:0,row:'exp',title:'A company whose brand aligns',note:'Mission adjacency matters — they want to look right next to the cause.'},
     {s:0,row:'ch',title:'Board connections · local businesses',note:'Warm intros double close rates. Cold outreach is the fallback.'},
@@ -768,7 +779,7 @@ function renderAll(){
   ensureRows(state.doc).filter(r=>r.visible).forEach(row=>{
     const gut=document.createElement('div'); gut.className='gutter';
     gut.style.setProperty('--grow-color',row.v);
-    gut.innerHTML='<div class="glabel">'+esc(row.name)+'</div>';
+    gut.innerHTML='<div class="glabel">'+esc(row.name)+'</div><div class="gq">'+esc(rowQ(row))+'</div>';
     g.appendChild(gut);
     state.doc.stages.forEach(st=>{
       const cell=document.createElement('div');
@@ -969,6 +980,7 @@ function openEditor(card,newSpec,anchor){
   const row=card?getRow(card.row):(newSpec?getRow(newSpec.row):(state.doc.rows||DEFAULT_ROWS)[0]);
   $('#eDot').style.background=row?vartorow(row):'#bbb';
   $('#eType').textContent=card?'Card in '+row.name:'New card — '+row.name;
+  $('#eQ').textContent='“'+rowQ(row)+'”';
   ed.style.display='flex';
   const r=(anchor&&anchor.getBoundingClientRect())||(card&&$('.card[data-id="'+card.id+'"]').getBoundingClientRect());
   const ew=280, eh=230;
@@ -1075,6 +1087,7 @@ function renderRowChips(){
   const box=$('#rowChips'); box.innerHTML='';
   (state.doc?ensureRows(state.doc):[]).forEach(r=>{
     const chip=document.createElement('div'); chip.className='chip'+(r.visible?'':' off');
+    chip.title=rowQ(r);
     chip.innerHTML='<span class="dot" style="background:'+r.hex+'"></span>'+esc(r.name)
       +(DEFAULT_ROW_IDS.includes(r.id)?'':'<span class="x" title="Remove lane">×</span>');
     chip.addEventListener('click',e=>{
@@ -1226,7 +1239,9 @@ function buildExportSVG(){
   visible.forEach((r,ri)=>{
     const ry=rowY[ri], rh=rowHs[ri];
     h+='<line x1="'+(pad+GUTTER-16)+'" y1="'+(ry-7)+'" x2="'+(areaW-pad)+'" y2="'+(ry-7)+'" stroke="#e9e2d3"/>';
-    wrapLines(r.name,GUTTER-26,12,2).forEach((ln,i)=>{ h+='<text x="'+pad+'" y="'+(ry+18+i*15)+'" font-size="12" font-weight="650" fill="#8b8374">'+esc(ln)+'</text>'; });
+    const nameLns=wrapLines(r.name,GUTTER-26,12,2);
+    nameLns.forEach((ln,i)=>{ h+='<text x="'+pad+'" y="'+(ry+18+i*15)+'" font-size="12" font-weight="650" fill="#8b8374">'+esc(ln)+'</text>'; });
+    wrapLines(rowQ(r),GUTTER-30,10,2).forEach((ln,i)=>{ h+='<text x="'+pad+'" y="'+(ry+18+nameLns.length*15+4+i*13)+'" font-size="10" fill="#a89e88">'+esc(ln)+'</text>'; });
     h+='<rect x="'+pad+'" y="'+(ry+6)+'" width="3.5" height="14" rx="1.7" fill="'+r.hex+'"/>';
     doc.stages.forEach((s,ci)=>{
       if(!cellCards(ri,ci).length){
@@ -1320,6 +1335,7 @@ function init(){
     $('#mapTitle').value=saved.title||'';
     hideEmpty();
     renderAll();
+    renderRowChips();
     updateUndo();
     document.title=(saved.title||'Donor journey')+' — JourneyMap';
     toast('Restored your last map');
