@@ -186,7 +186,21 @@
   .editor textarea{resize:vertical;min-height:56px;line-height:1.45}
   .editor .efoot{display:flex;justify-content:space-between;align-items:center;margin-top:2px}
   .editor .eq{font-size:11px;color:#8b8374;font-style:italic;line-height:1.4}
+  .editor .ekind{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .editor .lbl2{font-size:11px;font-weight:650;color:var(--muted);letter-spacing:.02em}
+  .editor .kbtn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;color:#6f6859}
+  .editor .kbtn:hover{border-color:var(--line-strong)}
+  .editor .kbtn.on{background:var(--accent-soft);color:var(--accent-2);border-color:var(--accent)}
+  .editor .prio{border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:12px;font-weight:600;color:#6f6859}
   .editor .hint{font-size:10.5px;color:var(--muted)}
+  .seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff}
+  .seg button{border:none;background:transparent;padding:5px 11px;font-size:12px;font-weight:600;color:#6f6859;cursor:pointer;border-right:1px solid var(--line)}
+  .seg button:last-child{border-right:none}
+  .seg button:hover{background:#f4f0e6}
+  .seg button.on{background:var(--accent-soft);color:var(--accent-2)}
+  .card.idea{border:1.5px dashed #cdc2ab;border-left:4px solid var(--grow-color,#bbb);background:#fefdf8}
+  .card .cmk{margin-right:4px}
+  .card .pd{display:inline-block;width:9px;height:9px;border-radius:50%;margin-left:7px;vertical-align:1px;border:1.5px solid #fff;box-shadow:0 0 0 1px rgba(60,50,30,.12)}
 
   /* ---------- empty state ---------- */
   .empty{
@@ -273,6 +287,13 @@
     <button id="btnAddRow" class="btn btn-ghost" style="padding:5px 10px;font-size:12px"><span class="icon">+</span> custom lane</button>
     <div class="spacer"></div>
     <span class="lbl" id="statusLbl"></span>
+    <span class="sep"></span>
+    <span class="lbl">Show</span>
+    <div class="seg" id="kindSeg">
+      <button data-k="both" class="on">All</button>
+      <button data-k="cur">Current</button>
+      <button data-k="idea">Ideas</button>
+    </div>
   </div>
 
   <main id="workspace" class="workspace" tabindex="0">
@@ -300,6 +321,16 @@
   <div id="editor" class="editor" style="display:none">
     <div class="ehead"><span id="eDot" class="eyr" style="background:#bbb"></span><span id="eType" class="etyp">Card</span></div>
     <div id="eQ" class="eq"></div>
+    <div class="ekind">
+      <span class="lbl2">Kind</span>
+      <button class="kbtn on" data-k="cur">Current</button>
+      <button class="kbtn" data-k="idea">💡 Idea</button>
+      <select id="ePrio" class="prio" style="display:none">
+        <option value="1">Priority: High</option>
+        <option value="2" selected>Priority: Medium</option>
+        <option value="3">Priority: Low</option>
+      </select>
+    </div>
     <div>
       <label for="eTitle">Title</label>
       <input id="eTitle" type="text" spellcheck="false">
@@ -329,6 +360,7 @@
         <li><b>Lanes</b> — each row is a layer: what donors <b>experience</b>, the <b>channels</b> they use, what <b>your org does</b>, and <b>gaps &amp; opportunities</b>. Toggle lanes in the bar above.</li>
         <li><b>Cards</b> — click any cell to add one; click a card's <span class="keys">⋯</span> to edit it. Drag cards between cells to move them.</li>
         <li><b>Connect mode</b> — press <span class="keys">Connect</span>, then click two cards to draw a flow line. Click again to remove it.</li>
+        <li><b>Current vs Ideas</b> — cards are <b>Current</b> (solid) or <b>💡 Idea</b> (dashed, with a low/med/high priority dot): an aspiration you'd want to introduce. Set it in the card editor; filter the map with <span class="keys">All / Current / Ideas</span>. “Ideas only” is your to-do view.</li>
         <li><b>Undo</b> — <span class="keys">Ctrl+Z</span> / <span class="keys">Ctrl+Shift+Z</span>. Your map autosaves in this browser.</li>
         <li><b>Export</b> — <span class="keys">Export PNG</span> makes a clean image for decks; <span class="keys">PDF</span> prints the whole map. <span class="keys">Save file</span> keeps a copy to reload later.</li>
       </ul>
@@ -671,7 +703,14 @@ const state={
   connectMode:false, edgeFrom:null,
   drag:null,
   zoomMode:'fit',
+  showKinds:'both',   // 'both' | 'cur' | 'idea'
 };
+const KIND_PRIO={1:'High',2:'Medium',3:'Low'};
+const KIND_COLOR={1:'#d1664a',2:'#e0a93e',3:'#9db08c'};
+function kindVisible(c){
+  if(state.showKinds==='both') return true;
+  return state.showKinds==='idea' ? c.kind==='idea' : c.kind!=='idea';
+}
 const LSKEY='djm.doc.v1';
 
 /* ================= history ================= */
@@ -747,7 +786,8 @@ function syncOrderFromDOM(){
 }
 function updateStatus(){
   const n=state.doc?state.doc.stages.length:0, c=state.doc?state.doc.cards.length:0;
-  $('#statusLbl').textContent=n+' stages · '+c+' cards';
+  const i=state.doc?state.doc.cards.filter(x=>x.kind==='idea').length:0;
+  $('#statusLbl').textContent=n+' stages · '+c+' cards'+(i?' · '+i+' idea'+((i>1)?'s':''):'');
 }
 function applyZoom(){
   const g=$('#grid'); if(!g) return;
@@ -782,7 +822,7 @@ function renderAll(){
       const cell=document.createElement('div');
       cell.className='cell'; cell.dataset.stage=st.id; cell.dataset.row=row.id;
       cell.style.setProperty('--grow-color',row.v);
-      const cards=state.doc.cards.filter(c=>c.stage===st.id&&c.row===row.id);
+      const cards=state.doc.cards.filter(c=>c.stage===st.id&&c.row===row.id&&kindVisible(c));
       cards.forEach(c=>cell.appendChild(cardEl(c,row)));
       const ag=document.createElement('div'); ag.className='addghost'; ag.textContent='+ card';
       ag.addEventListener('click',ev=>{ ev.stopPropagation(); openEditor(null,{stage:st.id,row:row.id},ag); });
@@ -815,9 +855,12 @@ function colAddEl(){
   return a;
 }
 function cardEl(c,row){
-  const el=document.createElement('div'); el.className='card'; el.dataset.id=c.id;
+  const el=document.createElement('div'); el.className='card'+(c.kind==='idea'?' idea':''); el.dataset.id=c.id;
   el.style.setProperty('--grow-color',row.v);
-  el.innerHTML='<button class="cedit" title="Edit">⋯</button><div class="ctitle">'+esc(c.title)+'</div>'
+  const cmk=c.kind==='idea'?'<span class="cmk">💡</span>':'';
+  const pd=(c.kind==='idea'&&c.p)?'<span class="pd" style="background:'+KIND_COLOR[c.p]+'" title="Priority: '+KIND_PRIO[c.p]+'"></span>':'';
+  el.title=c.kind==='idea'?'Idea — '+KIND_PRIO[c.p||2]+' priority':'';
+  el.innerHTML='<button class="cedit" title="Edit">⋯</button><div class="ctitle">'+cmk+esc(c.title)+pd+'</div>'
     +(c.note?'<div class="cnote">'+esc(c.note)+'</div>':'');
   el.querySelector('.cedit').addEventListener('click',e=>{ e.stopPropagation(); openEditor(c,null,el); });
   el.addEventListener('click',()=>{ if(state.connectMode){ handleConnectClick(c.id); } else selectCard(c.id); });
@@ -979,6 +1022,11 @@ function openEditor(card,newSpec,anchor){
   $('#eDot').style.background=row?vartorow(row):'#bbb';
   $('#eType').textContent=card?'Card in '+row.name:'New card — '+row.name;
   $('#eQ').textContent='“'+rowQ(row)+'”';
+  const k0=((card&&card.kind)||'cur');
+  const pr0=(card&&card.kind==='idea')?(card.p||2):2;
+  $$('.kbtn').forEach(b=>b.classList.toggle('on',b.dataset.k===k0));
+  $('#ePrio').style.display=(k0==='idea')?'':'none';
+  $('#ePrio').value=String(pr0);
   ed.style.display='flex';
   const r=(anchor&&anchor.getBoundingClientRect())||(card&&$('.card[data-id="'+card.id+'"]').getBoundingClientRect());
   const ew=280, eh=230;
@@ -993,16 +1041,17 @@ function saveEditor(){
   const rawT=$('#eTitle').value, rawN=$('#eNote').value;
   const t=rawT.trim()||'Untitled';
   const n=rawN.trim();
+  const kb=$('.kbtn.on'); const k=kb?kb.dataset.k:'cur';
+  const pr=+$('#ePrio').value||2;
   if(editing.new){
     // untouched editor (nothing typed, nothing pasted) → close without creating a junk card
     if(rawT===editing.b0.t && rawN===editing.b0.n && !rawT.trim() && !rawN.trim()){ editing=null; closeEditor(); return; }
-    const card={id:uid(),stage:editing.stage,row:editing.row,title:t,note:n};
+    const card={id:uid(),stage:editing.stage,row:editing.row,title:t,note:n,kind:k,p:(k==='idea'?pr:undefined)};
     state.doc.cards.push(card);
-    const cell=$('.cell[data-stage="'+card.stage+'"]');
     const cell2=$('.cell[data-stage="'+card.stage+'"][data-row="'+card.row+'"]');
     editing=null; closeEditor();
-    // targeted insert (no full re-render — keeps any in-progress drag alive)
-    if(cell2){
+    // targeted insert (no full re-render — keeps any in-progress drag alive); else re-render (filter may hide it)
+    if(cell2&&kindVisible(card)){
       const el=cardEl(card,getRow(card.row));
       const ag=cell2.querySelector('.addghost');
       if(ag) cell2.insertBefore(el,ag); else cell2.appendChild(el);
@@ -1014,13 +1063,8 @@ function saveEditor(){
     }
   } else {
     const c=editing.card; c.title=t; c.note=n;
-    pushHist(false);
-    const el=$('.card[data-id="'+c.id+'"]');
-    if(el){ el.querySelector('.ctitle').textContent=t; const nx=el.querySelector('.cnote');
-      if(n) { if(nx) nx.textContent=n; else { const d=document.createElement('div'); d.className='cnote'; d.textContent=n; el.appendChild(d); } }
-      else if(nx) nx.remove();
-    }
-    saveSoon();
+    c.kind=k; c.p=(k==='idea'?pr:undefined);
+    commit();
   }
 }
 
@@ -1076,7 +1120,20 @@ function initEvents(){
   renderRowChips();
   $('#btnAddRow').addEventListener('click',addCustomRow);
 
+  // card-kind filter
+  $$('#kindSeg button').forEach(b=>b.addEventListener('click',()=>{
+    state.showKinds=b.dataset.k;
+    $$('#kindSeg button').forEach(x=>x.classList.toggle('on',x===b));
+    renderAll();
+    const ic=state.doc.cards.filter(x=>x.kind==='idea').length;
+    toast(state.showKinds==='idea'?('Ideas only — '+ic+' idea'+((ic>1)?'s':'')):(state.showKinds==='cur'?'Current state only':'All cards'));
+  }));
+
   // editor
+  $$('.kbtn').forEach(b=>b.addEventListener('click',()=>{
+    $$('.kbtn').forEach(x=>x.classList.toggle('on',x===b));
+    $('#ePrio').style.display=(b.dataset.k==='idea')?'':'none';
+  }));
   $('#eTitle').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); saveEditor(); closeEditor(); } });
   $('#eDelete').addEventListener('click',()=>{
     if(editing&&editing.card){ const id=editing.card.id; closeEditor(); deleteCard(id); }
@@ -1196,7 +1253,7 @@ function buildExportSVG(){
   const recs=[];
   visible.forEach((r,ri)=>{
     doc.stages.forEach((s,ci)=>{
-      doc.cards.filter(c=>c.stage===s.id&&c.row===r.id).forEach(c=>{
+      doc.cards.filter(c=>c.stage===s.id&&c.row===r.id&&kindVisible(c)).forEach(c=>{
         const tl=wrapLines(c.title||'Untitled',COLW-40,TFS,2);
         const nl=c.note?wrapLines(c.note,COLW-40,NFS,5):[];
         const h=24+tl.length*TLH+(nl.length?7+nl.length*NLH:0)+7;
@@ -1225,6 +1282,7 @@ function buildExportSVG(){
   h+='<text x="'+pad+'" y="36" font-size="26" font-weight="750" fill="#26221b">'+esc(doc.title||'Donor journey')+'</text>';
   const today=new Date().toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
   h+='<text x="'+pad+'" y="56" font-size="11.5" fill="#8b8374">Prepared '+esc(today)+' · '+n+' stages · '+doc.cards.length+' cards</text>';
+  h+='<text x="'+pad+'" y="73" font-size="10.5" fill="#a39a86">solid = current state · dashed = idea (priority dot: red high · amber medium · green low)</text>';
   let lx=areaW-pad;
   visible.slice().reverse().forEach(r=>{ const nm=esc(r.name), w=nm.length*7.2+46; lx-=w;
     h+='<rect x="'+lx+'" y="27" width="9" height="9" rx="4.5" fill="'+r.hex+'"/><text x="'+(lx+18)+'" y="36" font-size="11.5" font-weight="600" fill="#6f6859">'+nm+'</text>'; });
@@ -1260,11 +1318,14 @@ function buildExportSVG(){
   // ---- cards
   recs.forEach(x=>{
     const rc=rects.get(x.c.id); if(!rc) return;
-    h+='<rect x="'+rc.x+'" y="'+rc.y+'" width="'+rc.w+'" height="'+rc.h+'" rx="9" fill="#ffffff" stroke="#e3dccd"/>';
+    const idea=x.c.kind==='idea';
+    h+='<rect x="'+rc.x+'" y="'+rc.y+'" width="'+rc.w+'" height="'+rc.h+'" rx="9" fill="'+(idea?'#fefdf8':'#ffffff')+'" stroke="'+(idea?'#cdc2ab':'#e3dccd')+'"'+(idea?' stroke-dasharray="5 4"':'')+'/>';
     h+='<rect x="'+rc.x+'" y="'+rc.y+'" width="4" height="'+rc.h+'" rx="2" fill="'+x.r.hex+'"/>';
+    if(idea&&x.c.p){ h+='<circle cx="'+(rc.x+rc.w-13)+'" cy="'+(rc.y+13)+'" r="5.5" fill="#ffffff" stroke="rgba(60,50,30,.15)"/><circle cx="'+(rc.x+rc.w-13)+'" cy="'+(rc.y+13)+'" r="3.6" fill="'+(KIND_COLOR[x.c.p]||'#e0a93e')+'"/>'; }
     const tx=rc.x+15;
     let ty=rc.y+20;
-    x.tl.forEach((ln,i)=>{ h+='<text x="'+tx+'" y="'+(ty+i*TLH)+'" font-size="'+TFS+'" font-weight="700" fill="#26221b">'+esc(ln)+'</text>'; });
+    const first=x.tl[0]?(idea?'💡 '+x.tl[0]:x.tl[0]):'';
+    x.tl.forEach((ln,i)=>{ h+='<text x="'+tx+'" y="'+(ty+i*TLH)+'" font-size="'+TFS+'" font-weight="700" fill="#26221b">'+esc(i===0?first:ln)+'</text>'; });
     ty+=(x.tl.length-1)*TLH;
     if(x.nl.length){ ty+=7+NLH; x.nl.forEach((ln,i)=>{ h+='<text x="'+tx+'" y="'+(ty+i*NLH)+'" font-size="'+NFS+'" fill="#57503f">'+esc(ln)+'</text>'; }); }
   });

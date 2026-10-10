@@ -73,6 +73,21 @@ function check(name, ok, detail) {
   await page.keyboard.press('Enter'); await page.waitForTimeout(150);
   check('edit card persists', (await page.evaluate(() => document.querySelector('.card .ctitle').textContent)) === 'Renamed by test');
 
+  // D-004: card kinds (Current | Idea) + filter
+  await page.locator('.card .cedit').first().click(); await page.waitForTimeout(120);
+  await page.click('.kbtn[data-k="idea"]'); await page.waitForTimeout(60);
+  await page.selectOption('#ePrio', '1');
+  await page.focus('#eTitle');
+  await page.keyboard.press('Enter'); await page.waitForTimeout(150);
+  const ideaInfo=await page.evaluate(()=>({dom:[...document.querySelectorAll('.card')].filter(c=>c.classList.contains('idea')).length, stored:state.doc.cards.filter(c=>c.kind==='idea').map(c=>c.kind+':'+c.p)}));
+  check('card becomes an Idea (dashed + stored)', ideaInfo.dom === 1 && ideaInfo.stored.length === 1 && ideaInfo.stored[0] === 'idea:1', JSON.stringify(ideaInfo));
+  await page.click('#kindSeg button[data-k="idea"]'); await page.waitForTimeout(150);
+  check('Ideas filter isolates idea cards', (await page.evaluate(() => document.querySelectorAll('.card').length)) === 1);
+  await page.click('#kindSeg button[data-k="cur"]'); await page.waitForTimeout(150);
+  check('Current filter excludes ideas', (await page.evaluate(() => document.querySelectorAll('.card').length)) === (c0 + 1 - 1));
+  await page.click('#kindSeg button[data-k="both"]'); await page.waitForTimeout(150);
+  check('All filter restores everything', (await page.evaluate(() => document.querySelectorAll('.card').length)) === c0 + 1);
+
   const dlP = page.waitForEvent('download', { timeout: 8000 }).catch(() => null);
   await page.click('#btnPng');
   const dl = await dlP;
@@ -83,7 +98,7 @@ function check(name, ok, detail) {
   check('autosave restores on reload', (await cards()) === c0 + 1 && (await heads()) === 8, `cards=${await cards()} stages=${await heads()}`);
   check('no console/page errors', errors.length === 0, errors.join(' | ') || 'clean');
 
-  console.log(`\n${14 - failed}/14 smoke checks passed`);
+  console.log(`\n${18 - failed}/18 smoke checks passed`);
   await browser.close();
   process.exit(failed ? 1 : 0);
 })().catch(e => { console.error('FATAL', e); process.exit(1); });
