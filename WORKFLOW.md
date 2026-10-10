@@ -11,6 +11,7 @@ DIRECTIVES.md     ← improvement backlog (Mikey's directives → tracked items)
 AGENTS.md         ← instructions for the AI agent working in this repo
 dev/              ← test harness only (never shipped, never committed to node_modules)
   verify.sh       ← the gate: syntax + E2E smoke. Run before every commit.
+  backup.sh       ← bundles full history into ~/backups (off-repo safety net)
   smoke.js        ← end-to-end behavioural test (10 checks)
   shots.js        ← regenerates screenshots + the exported-PNG artifact
 ```
@@ -46,5 +47,11 @@ Nothing is committed unless this passes. `main` is always green.
 
 ## Backup (beyond the local repo)
 The repo is local. Git protects against *change*, not *machine loss*, so a backup copy is taken off-repo:
-`git bundle` into `~/backups/` (single self-contained file; restores the entire history with `git clone <file> <dir>`).
-Run manually or on a schedule — see `DIRECTIVES.md` for the open decision on a remote.
+```bash
+dev/backup.sh        # → ~/backups/journeymap-<date>.gitbundle (keeps last 10)
+```
+A bundle is a single self-contained file holding the **entire history**; restore anywhere with:
+```bash
+git clone ~/backups/journeymap-YYYY-MM-DD-HHMM.gitbundle journeymap-restored
+```
+Verified working (clone → full log + tags). Run it manually, or schedule it — see the open decision in `DIRECTIVES.md` about adding a remote.
