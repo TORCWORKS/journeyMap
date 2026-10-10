@@ -152,11 +152,11 @@
   .card .ctitle{font-size:13px;font-weight:700;line-height:1.4;color:var(--ink);padding-right:22px}
   .card .cnote{font-size:12px;color:#57503f;line-height:1.5;margin-top:4px;white-space:pre-wrap;word-break:break-word}
   .card .cedit{
-    position:absolute;top:5px;right:5px;width:20px;height:20px;border:none;border-radius:6px;
-    background:transparent;color:var(--muted);cursor:pointer;font-size:13px;line-height:1;opacity:0;
+    position:absolute;top:5px;right:5px;width:22px;height:22px;border:1px solid transparent;border-radius:7px;
+    background:transparent;color:var(--muted);cursor:pointer;font-size:13px;line-height:1;opacity:.55;
   }
-  .card:hover .cedit{opacity:1}
-  .card .cedit:hover{background:var(--accent-soft);color:var(--accent-2)}
+  .card:hover .cedit{opacity:1;border-color:var(--line);background:#fff}
+  .card .cedit:hover{background:var(--accent-soft);color:var(--accent-2);border-color:var(--accent)}
   .card.hint-source{outline:2px dashed var(--accent);outline-offset:2px}
   .connectmode .card:hover{outline:2px solid var(--accent);outline-offset:1px;cursor:crosshair}
 
@@ -358,7 +358,7 @@
       <ul>
         <li><b>Stages</b> — the columns of the journey, left to right. Rename by clicking, delete with the <span class="keys">×</span>, add stages with <span class="keys">+ Stage</span> or the dashed column at the end.</li>
         <li><b>Lanes</b> — each row is a layer: what donors <b>experience</b>, the <b>channels</b> they use, what <b>your org does</b>, and <b>gaps &amp; opportunities</b>. Toggle lanes in the bar above.</li>
-        <li><b>Cards</b> — click any cell to add one; click a card's <span class="keys">⋯</span> to edit it. Drag cards between cells to move them.</li>
+        <li><b>Cards</b> — click any cell to add one; <b>click a card to edit it</b> (title, note, Current/Idea kind, priority) — or press <span class="keys">Enter</span> on a selected card; <span class="keys">⋯</span> does the same. Drag cards between cells to move them; <span class="keys">Delete</span> removes the selected card.</li>
         <li><b>Connect mode</b> — press <span class="keys">Connect</span>, then click two cards to draw a flow line. Click again to remove it.</li>
         <li><b>Current vs Ideas</b> — cards are <b>Current</b> (solid) or <b>💡 Idea</b> (dashed, with a low/med/high priority dot): an aspiration you'd want to introduce. Set it in the card editor; filter the map with <span class="keys">All / Current / Ideas</span>. “Ideas only” is your to-do view.</li>
         <li><b>Undo</b> — <span class="keys">Ctrl+Z</span> / <span class="keys">Ctrl+Shift+Z</span>. Your map autosaves in this browser.</li>
@@ -863,7 +863,12 @@ function cardEl(c,row){
   el.innerHTML='<button class="cedit" title="Edit">⋯</button><div class="ctitle">'+cmk+esc(c.title)+pd+'</div>'
     +(c.note?'<div class="cnote">'+esc(c.note)+'</div>':'');
   el.querySelector('.cedit').addEventListener('click',e=>{ e.stopPropagation(); openEditor(c,null,el); });
-  el.addEventListener('click',()=>{ if(state.connectMode){ handleConnectClick(c.id); } else selectCard(c.id); });
+  el.addEventListener('click',()=>{
+    if(state.connectMode){ handleConnectClick(c.id); return; }
+    selectCard(c.id);
+    openEditor(c,null,el);                    // click a card → directly edit it
+  });
+  el.addEventListener('dblclick',e=>{ if(!state.connectMode){ e.preventDefault(); openEditor(c,null,el); } });
   el.addEventListener('pointerdown',e=>{ if(state.connectMode) return; if(e.target.closest('.cedit')) return; startDrag(e,el,c); });
   return el;
 }
@@ -980,9 +985,10 @@ function onDragUp(e){
     }
   }
   if(d.ph){ d.ph.remove(); }
-  syncOrderFromDOM();
   $$('.cell').forEach(c=>c.classList.remove('dragover'));
-  commit();
+  // only a real drag changes the document — a plain click must not re-render
+  // (it would destroy the card element before the browser delivers the click)
+  if(d.started){ syncOrderFromDOM(); commit(); }
 }
 
 /* ================= connect mode ================= */
@@ -1062,9 +1068,22 @@ function saveEditor(){
       commit();
     }
   } else {
+    // targeted update only — never re-render here, or an in-progress drag on this
+    // card would be destroyed by the mousedown that commits the editor
     const c=editing.card; c.title=t; c.note=n;
     c.kind=k; c.p=(k==='idea'?pr:undefined);
-    commit();
+    const el=$('.card[data-id="'+c.id+'"]');
+    if(el){
+      el.classList.toggle('idea',k==='idea');
+      el.title=k==='idea'?'Idea — '+KIND_PRIO[pr]+' priority':'';
+      const cmk=k==='idea'?'<span class="cmk">💡</span>':'';
+      const pd=(k==='idea'&&pr)?'<span class="pd" style="background:'+KIND_COLOR[pr]+'" title="Priority: '+KIND_PRIO[pr]+'"></span>':'';
+      el.querySelector('.ctitle').innerHTML=cmk+esc(t)+pd;
+      const nx=el.querySelector('.cnote');
+      if(n){ if(nx) nx.textContent=n; else { const d=document.createElement('div'); d.className='cnote'; d.textContent=n; el.appendChild(d); } }
+      else if(nx) nx.remove();
+    }
+    pushHist(false); updateStatus(); scheduleEdges(); saveSoon();
   }
 }
 
@@ -1180,6 +1199,11 @@ function onKey(e){
   const tag=(e.target.tagName||'').toUpperCase();
   const typing=tag==='INPUT'||tag==='TEXTAREA'||e.target.isContentEditable;
   if((e.key==='Delete'||e.key==='Backspace')&&!typing){ e.preventDefault(); deleteSelection(); return; }
+  if(e.key==='Enter'&&!typing&&state.sel&&state.sel.type==='card'){
+    const c=state.doc.cards.find(x=>x.id===state.sel.id); const el=$('.card[data-id="'+state.sel.id+'"]');
+    if(c&&el){ e.preventDefault(); openEditor(c,null,el); }
+    return;
+  }
   if(e.key==='Escape'){
     if(editing) closeEditor();
     else if(state.connectMode){ setConnect(false); }
