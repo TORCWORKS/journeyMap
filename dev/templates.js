@@ -63,10 +63,10 @@ function check(name, ok, detail) {
   check('5 lane chips (incl. episodes)', chips0 === 5);
   await page.evaluate(() => [...document.querySelectorAll('.chip')].find(c => c.textContent.includes('Campaign calendar')).click());
   await page.waitForTimeout(150);
-  check('hide lane reduces gutters by one', (await page.evaluate(() => document.querySelectorAll('.gutter .glabel').length)) === 4);
+  check('hide lane reduces gutters by one', (await page.evaluate(() => document.querySelectorAll('.lanehead').length)) === 4);
   await page.evaluate(() => [...document.querySelectorAll('.chip')].find(c => c.textContent.includes('Campaign calendar')).click());
   await page.waitForTimeout(150);
-  check('re-show lane restores gutters', (await page.evaluate(() => document.querySelectorAll('.gutter .glabel').length)) === 5);
+  check('re-show lane restores gutters', (await page.evaluate(() => document.querySelectorAll('.lanehead').length)) === 5);
   await page.click('#btnAddRow'); await page.waitForTimeout(200);
   check('custom lane added to doc + chips', await page.evaluate(() =>
     state.doc.rows.some(r => r.name === 'Test lane') && document.querySelectorAll('.chip').length === 6));
@@ -84,8 +84,8 @@ function check(name, ok, detail) {
   await page.reload(); await page.waitForTimeout(450);
   const mig = await page.evaluate(() => ({ rows: state.doc.rows.length, cardRowKept: state.doc.cards[0].row, stages: state.doc.stages.length }));
   check('legacy doc migrates to 4 default lanes', mig.rows === 4 && mig.cardRowKept === 'exp' && mig.stages === 1, JSON.stringify(mig));
-  const migQ=await page.evaluate(()=>({gq:document.querySelector('.gutter .gq')?document.querySelector('.gutter .gq').textContent.trim():'', chipTitle:document.querySelector('.chip').title}));
-  check('legacy lanes still get guiding questions (fallback)', migQ.gq.length>10 && migQ.chipTitle.length>10, JSON.stringify(migQ));
+  const migQ=await page.evaluate(()=>({lhq:document.querySelector('.lanehead .lhq')?document.querySelector('.lanehead .lhq').textContent.trim():'', chipTitle:document.querySelector('.chip')?document.querySelector('.chip').title:''}));
+  check('legacy lanes still get guiding questions (fallback)', migQ.lhq.length>10 && migQ.chipTitle.length>10, JSON.stringify(migQ));
 
   check('no console/page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 
