@@ -44,14 +44,14 @@ function check(name, ok, detail) {
   await page.mouse.click(a.x + a.width / 2, a.y + 14); await page.waitForTimeout(80);
   await page.mouse.click(b.x + b.width / 2, b.y + 14); await page.waitForTimeout(120);
   check('connect creates one flow edge', (await edges()) === 1);
-  await page.mouse.click(60, 700); await page.waitForTimeout(60); // exit connect
+  await page.keyboard.press('Escape'); await page.waitForTimeout(60); // exit connect mode
 
   const cell0 = await page.locator('.cell').first().boundingBox();
   await page.mouse.move(cell0.x + 40, cell0.y + 40); await page.waitForTimeout(60);
   await page.locator('.cell .addghost').first().click({ position: { x: 20, y: 8 } });
   await page.waitForTimeout(120);
   await page.fill('#eTitle', 'Smoke test card');
-  await page.mouse.click(60, 700); // outside editor → commits
+  await page.keyboard.press("Enter"); // commit the new card
   await page.waitForTimeout(180);
   check('add card', (await cards()) === c0 + 1, `cards=${await cards()} expected ${c0 + 1}`);
 
@@ -70,7 +70,7 @@ function check(name, ok, detail) {
 
   await page.locator('.card .cedit').first().click(); await page.waitForTimeout(120);
   await page.fill('#eTitle', 'Renamed by test');
-  await page.mouse.click(60, 700); await page.waitForTimeout(150);
+  await page.keyboard.press('Enter'); await page.waitForTimeout(150);
   check('edit card persists', (await page.evaluate(() => document.querySelector('.card .ctitle').textContent)) === 'Renamed by test');
 
   const dlP = page.waitForEvent('download', { timeout: 8000 }).catch(() => null);

@@ -94,7 +94,7 @@
   /* ---------- workspace / grid ---------- */
   .workspace{flex:1;overflow:auto;position:relative;outline:none}
   .canvas{padding:30px 40px 80px;position:relative;width:max-content;min-width:100%}
-  .grid{display:grid;grid-template-columns:var(--gutterw) repeat(var(--ncols),var(--colw));column-gap:14px;row-gap:10px;position:relative;align-items:start}
+  .grid{display:grid;grid-template-columns:repeat(var(--ncols),var(--colw));column-gap:14px;row-gap:12px;position:relative;align-items:start}
   .edges{position:absolute;left:0;top:0;pointer-events:none;z-index:0;overflow:visible}
 
   .colhead{
@@ -119,17 +119,13 @@
   .colhead:hover .del{visibility:visible}
   .colhead .del:hover{color:var(--rose);background:#fdf0ec}
 
-  .gutter{
-    position:sticky;left:0;z-index:3;background:var(--bg);
-    display:flex;align-items:flex-start;padding-top:2px;min-height:46px;
+  .lanehead{
+    display:flex;flex-direction:column;gap:3px;padding:2px 10px 6px 6px;margin-top:8px;
+    border-top:1px solid #ece5d5;border-left:3px solid var(--grow-color,var(--line));
   }
-  .gutter .glabel{
-    font-size:12px;font-weight:650;color:var(--muted);letter-spacing:.03em;line-height:1.35;
-    padding:4px 10px 4px 2px;border-left:3px solid var(--grow-color,var(--line));padding-left:8px;
-  }
-  .gutter .gq{
-    font-size:10.5px;color:#a39a86;line-height:1.4;padding:0 10px 0 11px;margin-top:1px;
-  }
+  .lanehead .lhn{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:#4d4638}
+  .lanehead .ldot{width:9px;height:9px;border-radius:50%;flex:0 0 9px}
+  .lanehead .lhq{font-size:11.5px;color:#a39a86;line-height:1.4;padding-left:16px}
   .cell{
     min-height:64px;border-radius:10px;border:2px dashed #e2dac8;
     padding:6px;display:flex;flex-direction:column;gap:8px;position:relative;transition:background .1s,border-color .1s;
@@ -773,14 +769,15 @@ function renderAll(){
   g.style.setProperty('--ncols',(state.doc.stages.length+1));
   g.innerHTML='';
   g.appendChild(edgesSvg);                                                 // keep the connector layer as the first (bottom) child
-  const spacer=document.createElement('div'); g.appendChild(spacer);       // gutter header
   state.doc.stages.forEach((st,idx)=>{ g.appendChild(stageHead(st,idx)); });
   g.appendChild(colAddEl());
   ensureRows(state.doc).filter(r=>r.visible).forEach(row=>{
-    const gut=document.createElement('div'); gut.className='gutter';
-    gut.style.setProperty('--grow-color',row.v);
-    gut.innerHTML='<div class="glabel">'+esc(row.name)+'</div><div class="gq">'+esc(rowQ(row))+'</div>';
-    g.appendChild(gut);
+    // lane header: name on top, guiding question underneath — spans the full journey width
+    const band=document.createElement('div'); band.className='lanehead'; band.style.gridColumn='1 / -1';
+    band.style.setProperty('--grow-color',row.v);
+    band.innerHTML='<div class="lhn"><span class="ldot" style="background:'+row.hex+'"></span>'+esc(row.name)+'</div>'
+      +'<div class="lhq">'+esc(rowQ(row))+'</div>';
+    g.appendChild(band);
     state.doc.stages.forEach(st=>{
       const cell=document.createElement('div');
       cell.className='cell'; cell.dataset.stage=st.id; cell.dataset.row=row.id;
@@ -977,6 +974,7 @@ function openEditor(card,newSpec,anchor){
   editing=card?{card}:{new:true,...newSpec};
   $('#eTitle').value=card?card.title:'';
   $('#eNote').value=card?(card.note||''):'';
+  editing.b0={t:$('#eTitle').value,n:$('#eNote').value};
   const row=card?getRow(card.row):(newSpec?getRow(newSpec.row):(state.doc.rows||DEFAULT_ROWS)[0]);
   $('#eDot').style.background=row?vartorow(row):'#bbb';
   $('#eType').textContent=card?'Card in '+row.name:'New card — '+row.name;
@@ -992,9 +990,12 @@ function vartorow(row){ return row.v.replace('var(','').replace(')',''); }  // r
 function closeEditor(){ const ed=$('#editor'); editing=null; ed.style.display='none'; }
 function saveEditor(){
   if(!editing) return;
-  const t=$('#eTitle').value.trim()||'Untitled';
-  const n=$('#eNote').value.trim();
+  const rawT=$('#eTitle').value, rawN=$('#eNote').value;
+  const t=rawT.trim()||'Untitled';
+  const n=rawN.trim();
   if(editing.new){
+    // untouched editor (nothing typed, nothing pasted) → close without creating a junk card
+    if(rawT===editing.b0.t && rawN===editing.b0.n && !rawT.trim() && !rawN.trim()){ editing=null; closeEditor(); return; }
     const card={id:uid(),stage:editing.stage,row:editing.row,title:t,note:n};
     state.doc.cards.push(card);
     const cell=$('.cell[data-stage="'+card.stage+'"]');
@@ -1187,8 +1188,9 @@ function buildExportSVG(){
   const visible=doc.rows.filter(r=>r.visible);
   const pad=44, titleH=62, headH=54, rowGap=20, cardGap=9, cellPad=8;
   const n=doc.stages.length;
-  const xOf=c=>pad+GUTTER+c*(COLW+GAP);
-  const areaW=pad+GUTTER+n*COLW+(n-1)*GAP+pad;
+  const xOf=c=>pad+c*(COLW+GAP);
+  const areaW=pad+n*COLW+(n-1)*GAP+pad;
+  const LANE_H=46;   // each lane gets a header band: name + guiding question
   const TFS=13, NFS=12, TLH=17, NLH=15.5;
   // ---- measure: one record per card (title + note wrapped, height derived from the same lines we draw)
   const recs=[];
@@ -1204,7 +1206,7 @@ function buildExportSVG(){
   });
   const cellCards=(ri,ci)=>recs.filter(x=>x.ri===ri&&x.ci===ci);
   const cellH=(ri,ci)=>{ const cs=cellCards(ri,ci); return cs.length? cellPad*2+cs.reduce((a,x)=>a+x.h+cardGap,0)-cardGap : 74; };
-  const rowHs=visible.map((r,ri)=>Math.max(74,...doc.stages.map((s,ci)=>cellH(ri,ci))));
+  const rowHs=visible.map((r,ri)=>{ const mc=Math.max(74,...doc.stages.map((s,ci)=>cellH(ri,ci))); return LANE_H+mc; });
   const headTop=pad+titleH;
   let yy=headTop+headH+18;
   const rowY=rowHs.map(hh=>{ const v=yy; yy+=hh+rowGap; return v; });
@@ -1212,7 +1214,7 @@ function buildExportSVG(){
   const rects=new Map();
   visible.forEach((r,ri)=>{
     doc.stages.forEach((s,ci)=>{
-      let cy=rowY[ri]+cellPad;
+      let cy=rowY[ri]+LANE_H+cellPad;
       cellCards(ri,ci).forEach(x=>{ rects.set(x.c.id,{x:xOf(ci)+7,y:cy,w:COLW-14,h:x.h}); cy+=x.h+cardGap; });
     });
   });
@@ -1238,16 +1240,15 @@ function buildExportSVG(){
   // ---- lanes: separators, labels, empty-cell placeholders
   visible.forEach((r,ri)=>{
     const ry=rowY[ri], rh=rowHs[ri];
-    h+='<line x1="'+(pad+GUTTER-16)+'" y1="'+(ry-7)+'" x2="'+(areaW-pad)+'" y2="'+(ry-7)+'" stroke="#e9e2d3"/>';
-    const nameLns=wrapLines(r.name,GUTTER-26,12,2);
-    nameLns.forEach((ln,i)=>{ h+='<text x="'+pad+'" y="'+(ry+18+i*15)+'" font-size="12" font-weight="650" fill="#8b8374">'+esc(ln)+'</text>'; });
-    wrapLines(rowQ(r),GUTTER-30,10,2).forEach((ln,i)=>{ h+='<text x="'+pad+'" y="'+(ry+18+nameLns.length*15+4+i*13)+'" font-size="10" fill="#a89e88">'+esc(ln)+'</text>'; });
-    h+='<rect x="'+pad+'" y="'+(ry+6)+'" width="3.5" height="14" rx="1.7" fill="'+r.hex+'"/>';
+    h+='<line x1="'+pad+'" y1="'+(ry-6)+'" x2="'+(areaW-pad)+'" y2="'+(ry-6)+'" stroke="#e9e2d3"/>';
+    h+='<rect x="'+(pad+4)+'" y="'+(ry+11)+'" width="9" height="9" rx="4.5" fill="'+r.hex+'"/>';
+    h+='<text x="'+(pad+20)+'" y="'+(ry+22)+'" font-size="12.5" font-weight="700" fill="#4d4638">'+esc(r.name)+'</text>';
+    h+='<text x="'+(pad+20)+'" y="'+(ry+37)+'" font-size="10.5" fill="#a39a86">'+esc(rowQ(r))+'</text>';
     doc.stages.forEach((s,ci)=>{
       if(!cellCards(ri,ci).length){
-        const ch=Math.max(40,rh-cellPad*2);
-        h+='<rect x="'+(xOf(ci)+7)+'" y="'+(ry+cellPad)+'" width="'+(COLW-14)+'" height="'+ch+'" rx="9" fill="none" stroke="#e0d8c6" stroke-dasharray="6 5"/>';
-        h+='<text x="'+(xOf(ci)+7+(COLW-14)/2)+'" y="'+(ry+cellPad+ch/2+4)+'" text-anchor="middle" font-size="11" font-weight="600" fill="#c4baa2">+ card</text>';
+        const ch=Math.max(40,rh-LANE_H-cellPad*2);
+        h+='<rect x="'+(xOf(ci)+7)+'" y="'+(ry+LANE_H+cellPad)+'" width="'+(COLW-14)+'" height="'+ch+'" rx="9" fill="none" stroke="#e0d8c6" stroke-dasharray="6 5"/>';
+        h+='<text x="'+(xOf(ci)+7+(COLW-14)/2)+'" y="'+(ry+LANE_H+cellPad+ch/2+4)+'" text-anchor="middle" font-size="11" font-weight="600" fill="#c4baa2">+ card</text>';
       }
     });
   });
