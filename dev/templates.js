@@ -50,6 +50,8 @@ function check(name, ok, detail) {
     check(`${k}: all card refs resolve`, !m.badStage && !m.badRow && m.emptyTitles === 0 && m.notesLong === 0, `badStage=${m.badStage} badRow=${m.badRow} emptyTitles=${m.emptyTitles} notesLong=${m.notesLong}`);
     check(`${k}: lane set correct${exp.eps ? ' (incl. episodes lane)' : ''}`, exp.eps === m.rows.includes('eps') && m.rows.length === (exp.eps ? 5 : 4), m.rows.join(','));
     check(`${k}: has a gaps lane (optimizer hooks)`, m.rows.includes('gap'));
+    const q=await page.evaluate(()=>{ const rows=state.doc.rows; return {n:rows.map(r=>String(r.q||'').trim()).filter(Boolean).length, total:rows.length}; });
+    check(`${k}: every lane carries a guiding question`, q.n===q.total, q.n+'/'+q.total);
   }
 
   // lane lifecycle on a 5-lane template
@@ -82,10 +84,12 @@ function check(name, ok, detail) {
   await page.reload(); await page.waitForTimeout(450);
   const mig = await page.evaluate(() => ({ rows: state.doc.rows.length, cardRowKept: state.doc.cards[0].row, stages: state.doc.stages.length }));
   check('legacy doc migrates to 4 default lanes', mig.rows === 4 && mig.cardRowKept === 'exp' && mig.stages === 1, JSON.stringify(mig));
+  const migQ=await page.evaluate(()=>({gq:document.querySelector('.gutter .gq')?document.querySelector('.gutter .gq').textContent.trim():'', chipTitle:document.querySelector('.chip').title}));
+  check('legacy lanes still get guiding questions (fallback)', migQ.gq.length>10 && migQ.chipTitle.length>10, JSON.stringify(migQ));
 
   check('no console/page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 
-  const total = Object.keys(EXPECT).length * 4 + 6 + 1 + 1;
+  const total = Object.keys(EXPECT).length * 5 + 7 + 1 + 1;
   console.log(`\n${total - failed}/${total} template checks passed`);
   await browser.close();
   process.exit(failed ? 1 : 0);

@@ -14,6 +14,7 @@ A single-file web app for mapping a nonprofit's donor journey visually — stage
 ### The map
 - **Stages** = columns (lifecycle phases). Click the header to rename, `×` to delete, `+ Stage` or the dashed column to add.
 - **Lanes** = rows. Each map carries its own lanes — the standard four (Donor experience · Channels & touchpoints · Org actions · Gaps & opportunities) plus portfolio extras (e.g. **Recurring episodes** on Annual giving — the appeal calendar). Toggle them in the bar above the canvas, add a custom lane, or remove a custom lane with its `×`.
+- **Every lane carries a guiding question** under its name (hover a lane chip, or open the card editor) — e.g. *Channels & touchpoints — “How are we actively engaging them at this stage?”* — so staff know what kind of card to write in each lane. The questions appear on the map, in the editor, and in the exported PNG.
 - **Cards** = the items in each stage × lane cell. Click `+ card` or empty cell space to add; `⋯` to edit; drag to move between cells.
 - **Connect mode** = draw flow arrows between cards (click start card → target card; click again to remove).
 - **Fit width / zoom** = toolbar dropdown; *Fit width* keeps the whole journey on screen (default).
