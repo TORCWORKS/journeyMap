@@ -91,11 +91,14 @@
   .toast .tb{margin-left:10px;border:none;border-radius:6px;background:rgba(255,255,255,.16);padding:3px 10px;color:#fff;font-weight:700;cursor:pointer;font-size:12px}
   .toast .tb:hover{background:rgba(255,255,255,.28)}
   .chip{
-    display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);
-    border-radius:999px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;
+    display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);
+    border-radius:999px;padding:3px 10px;font-size:11.5px;font-weight:600;cursor:pointer;
     background:#fff;color:var(--ink);user-select:none;transition:all .12s;
   }
-  .chip .dot{width:9px;height:9px;border-radius:50%}
+  .chip .dot{width:8px;height:8px;border-radius:50%}
+  .chip .cnt{color:var(--muted);font-size:10.5px;font-weight:600}
+  #rowChips .chip.epsrow{margin-left:18px;position:relative}
+  #rowChips .chip.epsrow::before{content:"";position:absolute;left:-10px;top:18%;height:64%;width:1px;background:var(--line-strong)}
   .chip:hover{border-color:var(--line-strong)}
   .chip.off{opacity:.45}
   .chip .x{font-weight:700;color:var(--muted);padding-left:4px;opacity:.8}
@@ -147,12 +150,12 @@
   .colhead .del:hover{color:var(--rose);background:#fdf0ec}
 
   .lanehead{
-    display:flex;flex-direction:column;gap:2px;padding:1px 6px 4px 6px;margin-top:5px;
+    display:flex;flex-direction:row;align-items:center;gap:9px;padding:3px 8px;margin-top:4px;
     border-top:1px solid #ece5d5;border-left:3px solid var(--grow-color,var(--line));
   }
-  .lanehead .lhn{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#4d4638}
-  .lanehead .ldot{width:9px;height:9px;border-radius:50%;flex:0 0 9px}
-  .lanehead .lhq{font-size:11px;color:#a39a86;line-height:1.3;padding-left:15px}
+  .lanehead .lhn{flex:0 0 auto;white-space:nowrap;font-size:11.5px;font-weight:700;color:#4d4638}
+  .lanehead .lhq{flex:1;min-width:0;font-size:11px;color:#a39a86;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lanehead .lcnt{flex:0 0 auto;font-size:10px;font-weight:600;color:var(--muted)}
   .cell{
     min-height:64px;border-radius:10px;border:2px dashed #e2dac8;
     padding:6px;display:flex;flex-direction:column;gap:8px;position:relative;transition:background .1s,border-color .1s;
@@ -371,7 +374,6 @@
     <button id="btnMore" class="btn btn-ghost" title="More options">More <span class="icon">▾</span></button>
   </header>
   <div class="rowbar">
-    <span class="lbl">Lanes</span>
     <div id="rowChips" style="display:contents"></div>
     <span class="sep"></span>
     <button id="btnAddRow" class="btn btn-ghost" style="padding:5px 10px;font-size:12px"><span class="icon">+</span> custom lane</button>
@@ -1121,8 +1123,11 @@ function renderAll(){
     // lane header: name on top, guiding question underneath — spans the full journey width
     const band=document.createElement('div'); band.className='lanehead'; band.style.gridColumn='1 / -1';
     band.style.setProperty('--grow-color',row.v);
-    band.innerHTML='<div class="lhn"><span class="ldot" style="background:'+row.hex+'"></span>'+esc(row.name)+'</div>'
-      +'<div class="lhq">'+esc(rowQ(row))+'</div>';
+    const laneN=state.doc.cards.filter(c=>c.row===row.id).length;
+    const laneQ=rowQ(row);
+    band.innerHTML='<div class="lhn">'+esc(row.name)+'</div>'
+      +'<div class="lhq" title="'+esc(laneQ)+'">'+esc(laneQ)+'</div>'
+      +(laneN?'<span class="lcnt">'+laneN+'</span>':'');
     g.appendChild(band);
     state.doc.stages.forEach(st=>{
       const cell=document.createElement('div');
@@ -1648,9 +1653,11 @@ function initEvents(){
 function renderRowChips(){
   const box=$('#rowChips'); box.innerHTML='';
   (state.doc?ensureRows(state.doc):[]).forEach(r=>{
-    const chip=document.createElement('div'); chip.className='chip'+(r.visible?'':' off');
+    const chip=document.createElement('div'); chip.className='chip'+(r.visible?'':' off')+(r.id==='eps'?' epsrow':'');
     chip.title=rowQ(r);
+    const laneN=state.doc?state.doc.cards.filter(c=>c.row===r.id).length:0;
     chip.innerHTML='<span class="dot" style="background:'+r.hex+'"></span>'+esc(r.name)
+      +(laneN?'<span class="cnt">· '+laneN+'</span>':'')
       +(DEFAULT_ROW_IDS.includes(r.id)?'':'<span class="x" title="Remove lane">×</span>');
     chip.addEventListener('click',e=>{
       if(e.target.classList.contains('x')){ deleteRow(r.id); return; }
