@@ -57,6 +57,9 @@ dev/            ← dev-only test harness (not needed to use or share the app)
 ```
 The harness needs `playwright-core` and a Chromium binary (`CHROME=/path/to/chrome node dev/smoke.js`). Default path is the Playwright cache under `~/.cache/ms-playwright/`.
 
+## Deploying (staff access)
+This is a single self-contained `index.html` — deploy = put that one file on any static host at a *stable URL* (the URL is what keeps each staff member's locally stored maps intact; see "where data lives" above). The project's source of truth is this GitHub repo; the app is served from **GitHub Pages** at `https://<USERNAME>.github.io/<REPO>/` (Settings → Pages → Deploy from a branch: `main` / root). Push to `main` → Pages rebuilds → staff refresh to get the newest version (Ctrl+F5 if a stale copy is cached). Donor data never leaves a staff member's browser — hosting only serves the program file.
+
 ## Known limitations / next up
 - **No quiz / guided generation yet.** This build is manual authoring + templates only. The planned next slice is a question flow whose answers render straight onto the map (a quiz question is only valid if its answer becomes a map element). The templates are the target output shape of that flow.
 - No multi-user collaboration or shared links; handover is the JSON file.
