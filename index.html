@@ -252,6 +252,35 @@
   .modal ul b{color:var(--ink)}
   .modal .keys{display:inline-block;background:var(--accent-soft);color:var(--accent-2);border-radius:5px;padding:1px 6px;font-size:11.5px;font-weight:700;margin:0 2px}
   .modal .close{margin-top:16px;width:100%}
+  .methodsheet{
+    position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:140;
+    width:min(820px,calc(100vw - 40px));max-height:calc(100vh - 40px);overflow:auto;
+    background:#fff;border-radius:16px;box-shadow:var(--shadow-l);display:none;flex-direction:column;
+  }
+  .methodsheet .mhead{display:flex;align-items:center;justify-content:space-between;padding:16px 22px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:2}
+  .methodsheet .mhead h2{font-size:17px}
+  .methodsheet .mhead .del{border:none;background:transparent;color:var(--muted);font-size:20px;cursor:pointer;padding:2px 8px;border-radius:8px}
+  .methodsheet .mhead .del:hover{background:#f4f0e6;color:var(--rose)}
+  .methodsheet .mbody{padding:18px 26px 24px;font-size:14px;line-height:1.6;color:#3d3627}
+  .methodsheet .mbody h3{font-size:15px;margin:22px 0 8px;color:#26221b;letter-spacing:-.01em}
+  .methodsheet .mbody h3:first-child{margin-top:0}
+  .methodsheet .mbody p{margin:8px 0}
+  .methodsheet .mbody ul{margin:8px 0 8px 20px}
+  .methodsheet .mbody li{margin:5px 0}
+  .methodsheet .mbody .pill{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:2px 8px;border-radius:99px;vertical-align:2px}
+  .methodsheet .mbody .pill.canon{background:var(--accent-soft);color:var(--accent-2)}
+  .methodsheet .mbody .pill.adapt{background:#f3e7ef;color:#8a3d73}
+  .methodsheet .mbody table{width:100%;border-collapse:collapse;margin:10px 0;font-size:12.5px}
+  .methodsheet .mbody th{text-align:left;font-weight:700;border-bottom:2px solid var(--line);padding:6px 8px;color:#26221b}
+  .methodsheet .mbody td{border-bottom:1px solid #f0eadd;padding:6px 8px;vertical-align:top}
+  .methodsheet .mbody .refs{font-size:12px;color:#6f6859}
+  .methodsheet .mbody .refs li{margin:4px 0}
+  .methodsheet .mfoot{padding:12px 22px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;position:sticky;bottom:0;background:#fff}
+  @media print{
+    body.method-open .toolbar,body.method-open .rowbar,body.method-open .workspace,body.method-open .editor,body.method-open .toast,body.method-open #methodWrap{display:none !important}
+    body.method-open .methodsheet{position:static;transform:none;width:100%;max-height:none;overflow:visible;display:flex;box-shadow:none;border:none}
+    body.method-open .methodsheet .mhead,body.method-open .methodsheet .mfoot{position:static}
+  }
   .toast{
     position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:130;
     background:#2a251c;color:#fff;font-size:13px;padding:9px 16px;border-radius:999px;
@@ -292,6 +321,7 @@
       <option value="0.8">80%</option>
       <option value="1">100%</option>
     </select>
+    <button id="btnMethod" class="btn btn-ghost" title="Why this approach — the method &amp; sources">Method</button>
     <button id="btnHelp" class="btn btn-ghost" title="Help">?</button>
   </header>
   <div class="rowbar">
@@ -388,10 +418,19 @@
         <li><b>Connect mode</b> — press <span class="keys">Connect</span>, then click two cards to draw a flow line. Click again to remove it.</li>
         <li><b>Current vs Ideas</b> — cards are <b>Current</b> (solid) or <b>💡 Idea</b> (dashed, with a low/med/high priority dot): an aspiration you'd want to introduce. Set it in the card editor; filter the map with <span class="keys">All / Current / Ideas</span>. “Ideas only” is your to-do view.</li>
         <li><b>Metrics</b> — any card can carry a number: <b>current → target (benchmark norm)</b>, e.g. “First→second gift conversion 22% → 30% (norm 35%)”. Attach one in the card editor (benchmark auto-fills as a *suggested norm* where known — confirm it before presenting). The stages that have metrics show a compact summary strip under their header.</li>
+        <li><b>Why this approach?</b> — the whole method &amp; its sources (journey mapping &amp; service design, donor-centred fundraising, moves management) live on the <span class="keys">Method</span> page in the top bar; it prints or saves to PDF when you need to share it.</li>
         <li><b>Undo</b> — <span class="keys">Ctrl+Z</span> / <span class="keys">Ctrl+Shift+Z</span>. Your map autosaves in this browser.</li>
         <li><b>Export</b> — <span class="keys">Export PNG</span> makes a clean image for decks; <span class="keys">PDF</span> prints the whole map. <span class="keys">Save file</span> keeps a copy to reload later.</li>
       </ul>
       <button class="btn close" id="helpClose">Got it</button>
+    </div>
+  </div>
+
+  <div id="methodWrap" class="backdrop" style="display:none">
+    <div class="methodsheet" id="methodSheet">
+      <div class="mhead"><h2>Method &amp; sources</h2><button id="methodClose" class="del" title="Close">×</button></div>
+      <div class="mbody" id="methodBody"></div>
+      <div class="mfoot"><button id="methodPrint" class="btn btn-ghost">Print / save as PDF</button></div>
     </div>
   </div>
 
@@ -1211,6 +1250,10 @@ function initEvents(){
   $('#btnPdf').addEventListener('click',()=>window.print());
   $('#zoomSel').addEventListener('change',e=>{ state.zoomMode=e.target.value; applyZoom(); });
   window.addEventListener('resize',()=>{ if(state.zoomMode==='fit') applyZoom(); });
+  $('#btnMethod').addEventListener('click',toggleMethod);
+  $('#methodClose').addEventListener('click',closeMethod);
+  $('#methodPrint').addEventListener('click',()=>{ document.body.classList.add('method-open'); setTimeout(()=>window.print(),80); });
+  $('#methodWrap').addEventListener('click',e=>{ if(e.target===e.currentTarget) closeMethod(); });
   $('#btnHelp').addEventListener('click',()=>$('#modalHelp').style.display='flex');
   $('#helpClose').addEventListener('click',()=>$('#modalHelp').style.display='none');
   $('#modalHelp').addEventListener('click',e=>{ if(e.target.id==='modalHelp') $('#modalHelp').style.display='none'; });
@@ -1487,6 +1530,56 @@ function exportPNG(){
   img.onerror=()=>{ URL.revokeObjectURL(url); toast('Export failed — try PDF instead'); };
   img.src=url;
 }
+
+/* ================= method page ================= */
+function buildMethodHTML(){
+  const pill=(cls,t)=>'<span class="pill '+cls+'">'+t+'</span>';
+  return ''
+  +'<h3>What this is</h3>'
+  +'<p>JourneyMap maps how a supporter moves through one of your fundraising programs — annual giving, a signature event, planned giving — <b>stage by stage and lane by lane</b>. It is a working document, not a static deliverable: it first describes the experience as it is today, then collects the ideas and numbers for where it should go.</p>'
+  +'<h3>Where it comes from</h3>'+pill('canon','canonical')+' <b>Three pillars of established practice hold the approach up:</b>'
+  +'<ul>'
+  +'<li><b>Journey mapping &amp; service design.</b> The map\'s anatomy — stages × layers; the donor-experience band; touchpoints; frontstage vs backstage — comes from the customer-journey-mapping and service-blueprinting canon (Kalbach 2016; Nielsen Norman Group; Shostack 1984).</li>'
+  +'<li><b>Donor-centred fundraising.</b> The donor-side content — what donors feel and decide at each stage, the prompt and specific thank-you, needs met before the next ask — builds on Penelope Burk\'s research (2003; updated 2018).</li>'
+  +'<li><b>Relationship fundraising &amp; moves management.</b> The cultivation discipline — including the leadership-giving stage axis (identify → qualify → cultivate → solicit → steward) — is moves management, developed by David Dunlop at Cornell and institutionalised in Raiser\'s Edge (Burnett 1992; Dunlop).</li>'
+  +'</ul>'
+  +'<h3>How to read a map</h3>'
+  +'<table><tr><th>Element</th><th>What it means</th></tr>'
+  +'<tr><td><b>Stage columns</b></td><td>Lifecycle phases, left → right (awareness → first gift → retention → growth → drift → lapse; or an event/program lifecycle).</td></tr>'
+  +'<tr><td><b>Lanes</b></td><td>Four layers describe each stage: <b>Donor experience</b> (what they think/feel/decide), <b>Channels &amp; touchpoints</b>, <b>Org actions</b> (the backstage work), <b>Gaps &amp; opportunities</b>. Each lane carries a question so a new team member knows what to write.</td></tr>'
+  +'<tr><td><b>Recurring episodes lane</b> '+pill('adapt','our adaptation')+'</td><td>The appeal/event calendar, mapped onto the stages it serves — fundraising runs on cycles, and this lane makes the rhythm visible inside the relationship.</td></tr>'
+  +'<tr><td><b>Cards</b></td><td><b>Current</b> state (solid) or <b>💡 Idea</b> (dashed, with a priority dot) — an aspiration being weighed. Click a card to edit; drag to move.</td></tr>'
+  +'<tr><td><b>Metric chips</b> '+pill('adapt','our adaptation')+'</td><td><i>current → target (suggested norm)</i>, on the card that claims it, rolled up under each stage\'s header.</td></tr>'
+  +'</table>'
+  +'<h3>Why we made these choices</h3>'
+  +'<p>Every structural choice is inherited from the canon unless marked as our adaptation. The ideas layer restates the classic <i>as-is / to-be</i> distinction in one artifact; a single map holds the current state and the path forward.</p>'
+  +'<h3>Where the approach tries to improve on practice</h3>'+pill('adapt','our adaptations, being tested')+' '
+  +'<ul>'
+  +'<li><b>As-is and to-be in one place.</b> Most maps stop at describing today; this one deliberately collects the ideas for tomorrow alongside it, with priorities.</li>'
+  +'<li><b>Numbers without a homework lane.</b> Staff fill the <i>current</i>, the tool suggests the <i>benchmark</i>, leaders set the <i>target</i> — nobody fills a spreadsheet row of guesses.</li>'
+  +'<li><b>Questions, not blank space.</b> Each lane asks a question, so filling a map is guided rather than daunting.</li>'
+  +'<li><b>The calendar made visible.</b> The recurring-episodes lane is our fundraising-specific extension of the generic anatomy.</li>'
+  +'</ul>'
+  +'<h3>Honesty before confidence</h3>'
+  +'<ul>'
+  +'<li><b>Benchmark numbers are suggested, not authoritative</b> — confirm them before presenting (the editor labels them so).</li>'
+  +'<li>A journey map <b>complements data, it never replaces it</b>. The map answers “what happens and how it feels”; the CRM answers “how much and how fast”.</li>'
+  +'<li>Maps describe the <b>common path</b> — a relationship hypothesis, not a fact about any one donor.</li>'
+  +'</ul>'
+  +'<h3>References</h3>'
+  +'<ul class="refs">'
+  +'<li>Kalbach, J. <i>Mapping Experiences</i>. O\'Reilly, 2016.</li>'
+  +'<li>Nielsen Norman Group — <i>Service Blueprints</i> &amp; <i>Customer Journey Maps</i> (nngroup.com).</li>'
+  +'<li>Shostack, G. L. “Designing Services That Deliver.” <i>Harvard Business Review</i>, 1984.</li>'
+  +'<li>Burk, P. <i>Donor-Centered Fundraising</i>. Cygnus, 2003 (2nd ed. 2018).</li>'
+  +'<li>Burnett, K. <i>Relationship Fundraising</i>. White Lion Press, 1992 (2nd ed. Wiley, 2002).</li>'
+  +'<li>Dunlop, D. — moves management, Cornell University (institutionalised in Raiser\'s Edge).</li>'
+  +'<li>Blackbaud — <i>Donor Journeys: From Discovery to Support</i> (lifecycle vocabulary).</li>'
+  +'</ul>';
+}
+function openMethod(){ const w=$('#methodWrap'); $('#methodBody').innerHTML=buildMethodHTML(); w.style.display='flex'; $('#methodSheet').style.display='flex'; document.body.classList.add('method-open'); }
+function closeMethod(){ $('#methodWrap').style.display='none'; $('#methodSheet').style.display='none'; document.body.classList.remove('method-open'); }
+function toggleMethod(){ $('#methodWrap').style.display==='flex'?closeMethod():openMethod(); }
 
 /* ================= template picker ================= */
 function renderTplTiles(){
