@@ -258,6 +258,8 @@
   /* margin:auto centres without the top-clipping trap that justify-content:center causes on overflow */
   .empty .wrap{max-width:700px;padding:40px 24px;text-align:center;margin:auto}
   .empty .eyebrow{font-size:11px;font-weight:800;letter-spacing:.14em;color:var(--accent);margin-bottom:10px}
+  .empty .lbrand{justify-content:center;margin:0 0 14px;cursor:pointer;user-select:none}
+  .empty .lbrand .brand-name{font-size:17px}
   .empty .tplrow{display:flex;align-items:center;justify-content:center;gap:18px;margin-bottom:10px}
   .empty .tpllabel{font-size:12.5px;font-weight:700;color:#4d4638}
   .empty .btn-blank{border:1px solid var(--line-strong);background:#fff;border-radius:99px;padding:3px 11px;font-size:11.5px;font-weight:600;color:#6f6859;cursor:pointer;transition:all .12s}
@@ -394,6 +396,7 @@
     <div id="empty" class="empty">
     <button id="startClose" class="startClose" style="display:none" title="Back to your map">✕</button>
       <div class="wrap">
+        <div class="brand lbrand" id="landingBrand" title="Back to your map"><div class="logo">JM</div><div class="brand-name">Journey<em>Map</em></div></div>
         <div class="eyebrow">START HERE</div>
         <h1>Map a <em>donor journey</em> your team owns.</h1>
         <p>Start from the portfolio your staff actually run — annual giving, events, planned giving, corporate — then edit it to match how it really works. Stages left to right, each lane a layer of the experience, your recurring episodes built in.</p>
@@ -1527,6 +1530,7 @@ function initEvents(){
   });
   $('#startClose').addEventListener('click',()=>{ $('#empty').style.display='none'; syncStartHint(); });
   $('#hintClose').addEventListener('click',()=>{ state.hintDismissed=true; syncStartHint(); });
+  $('#landingBrand').addEventListener('click',()=>{ $('#empty').style.display='none'; syncStartHint(); });
   $('#btnMethod').addEventListener('click',toggleMethod);
   $('#methodClose').addEventListener('click',closeMethod);
   $('#methodPrint').addEventListener('click',()=>{ document.body.classList.add('method-open'); setTimeout(()=>window.print(),80); });
