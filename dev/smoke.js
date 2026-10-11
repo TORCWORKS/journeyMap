@@ -97,6 +97,13 @@ function check(name, ok, detail) {
   await page.keyboard.press('Enter'); await page.waitForTimeout(150);
   check('direct editor save persists', (await page.evaluate(() => [...document.querySelectorAll('.card .ctitle')].some(t => t.textContent === 'Edited by click'))));
 
+  // D-008: method page (method & sources explainer)
+  await page.click('#btnMethod'); await page.waitForTimeout(200);
+  const meth = await page.evaluate(() => ({ len: document.getElementById('methodBody').textContent.length, kalbach: document.getElementById('methodBody').textContent.includes('Kalbach'), moves: document.getElementById('methodBody').textContent.includes('moves management') }));
+  check('method page opens with the source lineage', meth.len > 1500 && meth.kalbach && meth.moves, JSON.stringify(meth));
+  await page.click('#methodClose'); await page.waitForTimeout(120);
+  check('method page closes', (await page.evaluate(() => document.getElementById('methodWrap').style.display)) === 'none');
+
   // D-007: metrics — chip on card, auto-derived stage strip, suggested-norm autofill
   await page.locator('.card .cedit').first().click(); await page.waitForTimeout(120);
   await page.click('#eMetricToggle'); await page.waitForTimeout(60);
@@ -119,7 +126,7 @@ function check(name, ok, detail) {
   check('autosave restores on reload', (await cards()) === c0 + 1 && (await heads()) === 8, `cards=${await cards()} stages=${await heads()}`);
   check('no console/page errors', errors.length === 0, errors.join(' | ') || 'clean');
 
-  console.log(`\n${23 - failed}/23 smoke checks passed`);
+  console.log(`\n${25 - failed}/25 smoke checks passed`);
   await browser.close();
   process.exit(failed ? 1 : 0);
 })().catch(e => { console.error('FATAL', e); process.exit(1); });

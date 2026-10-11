@@ -36,12 +36,15 @@ A single-file web app for mapping a nonprofit's donor journey visually — stage
 `Ctrl/⌘+Z` undo · `Ctrl/⌘+Shift+Z` (or `Ctrl+Y`) redo · `Delete` removes the selected card or stage · `Esc` closes the editor / exits connect mode.
 
 ## Method & credibility
-`METHOD.md` is the short, printable case for how this approach is grounded:
-journey mapping & service design anatomy (Kalbach; NN/g; Shostack), donor-
-centered fundraising (Burk), and relationship fundraising / moves management
-(Burnett; Dunlop/Cornell) — with every *adaptation* we made (the Recurring
-episodes lane, the suggested-norm benchmarks, the as-is/to-be Ideas layer)
-explicitly labelled as ours rather than inherited doctrine.
+The **Method** button in the app bar opens the in-app "Method & sources" explainer
+(grounding → how-to-read → rationale → our tested adaptations → caveats →
+references); it prints or saves as PDF from the sheet. `METHOD.md` is the
+canonical markdown source. Every choice is either inherited from established
+practice (journey mapping & service design: Kalbach, NN/g, Shostack; donor-
+centred fundraising: Burk; relationship fundraising / moves management:
+Burnett, Dunlop/Cornell) or explicitly labelled as *our adaptation* (the
+Recurring episodes lane, suggested-norm benchmarks, the as-is/to-be Ideas
+layer, the metrics three-party split).
 
 ## Files
 ```
