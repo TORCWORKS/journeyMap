@@ -44,7 +44,7 @@ function check(name, ok, detail) {
   await page.waitForTimeout(700);
   const s0 = await heads(), c0 = await cards();
   const tplIdeas = await page.evaluate(() => state.doc.cards.filter(c => c.kind === 'idea').length);
-  check('template loads (annual-giving frame: 6 stages / 13 seed cards)', s0 === 6 && c0 === 13, `stages=${s0} cards=${c0}`);
+  check('template loads (annual-giving frame: 6 stages / 0 cards)', s0 === 6 && c0 === 0, `stages=${s0} cards=${c0}`);
 
   // D-024: Frame ⇄ Worked example toggle on template-created maps
   const tgOn = await page.evaluate(() => document.getElementById('tplToggle').style.display === 'flex');
@@ -54,7 +54,7 @@ function check(name, ok, detail) {
   check('toggle opens the worked example', exM.title.includes('worked example') && exM.cards === 33 && exM.ex, JSON.stringify(exM));
   await page.click('#tplToggle [data-v="frame"]'); await page.waitForTimeout(350);
   const frM = await page.evaluate(() => ({ title: state.doc.title, cards: state.doc.cards.length, ex: !!state.doc._ex }));
-  check('toggle returns to the frame', frM.cards === 13 && !frM.ex && frM.title.includes('donor journey'), JSON.stringify(frM));
+  check('toggle returns to the (zero-card) frame', frM.cards === 0 && !frM.ex && frM.title.includes('donor journey'), JSON.stringify(frM));
   check('no stray maps created by toggling (reuses existing)', (await page.evaluate(() => state.lib.maps.filter(m => m.doc._tpl === 'annual-giving').length)) === 2, 'maps=2 expected');
 
   await page.click('#btnStage'); await page.waitForTimeout(120);
@@ -83,6 +83,11 @@ function check(name, ok, detail) {
   check('drag reorders stage columns', JSON.stringify(stBefore) !== JSON.stringify(stAfter) && stAfter[stAfter.length - 1] === stBefore[0], `${stBefore[0]} → ${stAfter[stAfter.length - 1]}`);
   check('reordering keeps every card', (await cards()) === cardsBefore);
 
+  // frames are zero-card, so build two scratch cards to connect, then clean up
+  await page.locator('.cell .addghost').first().click({ position: { x: 20, y: 8 } });
+  await page.waitForTimeout(120); await page.fill('#eTitle', 'Scratch A'); await page.keyboard.press('Enter'); await page.waitForTimeout(180);
+  await page.locator('.cell').nth(1).locator('.addghost').click({ position: { x: 20, y: 8 } });
+  await page.waitForTimeout(120); await page.fill('#eTitle', 'Scratch B'); await page.keyboard.press('Enter'); await page.waitForTimeout(180);
   await page.keyboard.press('c');   // connect mode via C (toolbar button removed)
   const a = await page.locator('.card').nth(0).boundingBox();
   const b = await page.locator('.card').nth(1).boundingBox();
@@ -90,6 +95,8 @@ function check(name, ok, detail) {
   await page.mouse.click(b.x + b.width / 2, b.y + 14); await page.waitForTimeout(120);
   check('connect creates one flow edge', (await edges()) === 1);
   await page.keyboard.press('Escape'); await page.waitForTimeout(60); // exit connect mode
+  await page.evaluate(() => { state.doc.cards = []; state.doc.edges = []; commit(); }); // leave the frame pristine
+  await page.waitForTimeout(150);
 
   const cell0 = await page.locator('.cell').first().boundingBox();
   await page.mouse.move(cell0.x + 40, cell0.y + 40); await page.waitForTimeout(60);
@@ -99,7 +106,9 @@ function check(name, ok, detail) {
   await page.keyboard.press("Enter"); // commit the new card
   await page.waitForTimeout(180);
   check('add card', (await cards()) === c0 + 1, `cards=${await cards()} expected ${c0 + 1}`);
-  check('hint hides once the map has cards', (await page.evaluate(() => document.getElementById('startHint').style.display)) === 'none');
+  await page.waitForTimeout(250);
+  const hintDbg = await page.evaluate(() => ({ disp: document.getElementById('startHint').style.display, cards: document.querySelectorAll('.card').length, dismissed: state.hintDismissed, emptyOpen: document.getElementById('empty').style.display }));
+  check('hint hides once the map has cards', hintDbg.disp === 'none', JSON.stringify(hintDbg));
 
   const cBefore0 = await page.locator('.cell').nth(0).locator('.card').count();
   const cBefore1 = await page.locator('.cell').nth(1).locator('.card').count();
@@ -135,13 +144,14 @@ function check(name, ok, detail) {
   check('All filter restores everything', (await page.evaluate(() => document.querySelectorAll('.card').length)) === c0 + 1);
 
   // D-005: editing is discoverable — click a card directly opens its editor
-  const n3 = await page.locator('.card').nth(2).boundingBox();
+  await page.waitForTimeout(350);   // let the entrance animation settle before the click
+  const n3 = await page.locator('.card').nth(0).boundingBox();
   await page.mouse.click(n3.x + n3.width / 2, n3.y + 14);
   await page.waitForTimeout(150);
   check('clicking a card opens its editor', (await page.evaluate(() => document.getElementById('editor').style.display)) === 'flex');
   await page.fill('#eTitle', 'Edited by click');
   await page.keyboard.press('Enter'); await page.waitForTimeout(150);
-  check('direct editor save persists', (await page.evaluate(() => [...document.querySelectorAll('.card .ctitle')].some(t => t.textContent === 'Edited by click'))));
+  check('direct editor save persists', (await page.evaluate(() => [...document.querySelectorAll('.card .ctitle')].some(t => t.textContent.replace(/^\s*💡\s*/, '') === 'Edited by click'))));
 
   // D-008: method page (method & sources explainer) — now under More ▾
   await page.click('#btnMore'); await page.waitForTimeout(150);
@@ -160,8 +170,16 @@ function check(name, ok, detail) {
   await page.fill('#eMCur', '9%'); await page.fill('#eMTgt', '14%');
   await page.focus('#eTitle'); await page.keyboard.press('Enter'); await page.waitForTimeout(180);
   const mres = await page.evaluate(() => ({ chip: document.querySelectorAll('.cmtr').length, stored: state.doc.cards.filter(c => c.m).length, strips: document.querySelectorAll('.mstrip').length }));
-  check('metric chip renders + stores (seeded + added)', mres.stored >= 4 && mres.chip === mres.stored, JSON.stringify(mres));
-  // D-012: links are removable from the card editor
+  check('metric chip renders + stores on the card', mres.stored >= 1 && mres.chip === mres.stored && mres.strips >= 1, JSON.stringify(mres));
+  // D-012: links are removable from the card editor (build the edge first)
+  await page.locator('.cell').nth(1).locator('.addghost').click({ position: { x: 20, y: 8 } });
+  await page.waitForTimeout(120); await page.fill('#eTitle', 'Link target'); await page.keyboard.press('Enter'); await page.waitForTimeout(180);
+  await page.keyboard.press('c');
+  const lk1 = await page.locator('.card').nth(0).boundingBox();
+  const lk2 = await page.locator('.card').nth(1).boundingBox();
+  await page.mouse.click(lk1.x + lk1.width / 2, lk1.y + 14); await page.waitForTimeout(80);
+  await page.mouse.click(lk2.x + lk2.width / 2, lk2.y + 14); await page.waitForTimeout(150);
+  await page.keyboard.press('Escape'); await page.waitForTimeout(100);
   const srcId = await page.evaluate(() => state.doc.edges[0].from);
   await page.locator('.card[data-id="' + srcId + '"] .cedit').first().click(); await page.waitForTimeout(150);
   check('editor lists the card\'s links', (await page.evaluate(() => document.querySelectorAll('#eLinks .el').length)) === 1, 'entries=' + (await page.evaluate(() => document.querySelectorAll('#eLinks .el').length)));
@@ -169,6 +187,12 @@ function check(name, ok, detail) {
   await page.waitForTimeout(200);
   check('removing the link deletes the edge', (await page.evaluate(() => state.doc.edges.length)) === 0, 'edges=' + (await page.evaluate(() => state.doc.edges.length)));
   await page.keyboard.press('Escape'); await page.waitForTimeout(120);
+  await page.evaluate(() => {   // drop the scratch 'Link target' card again
+    const t = state.doc.cards.find(c => c.title === 'Link target');
+    if (t) state.doc.cards = state.doc.cards.filter(c => c.id !== t.id);
+    state.doc.edges = []; commit();
+  });
+  await page.waitForTimeout(150);
   check('stage header strips auto-derive', mres.strips >= 1, 'strips=' + mres.strips);
 
   await page.click('#btnExport'); await page.waitForTimeout(120);
