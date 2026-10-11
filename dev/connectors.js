@@ -20,7 +20,7 @@ function check(name, ok, detail) { CHECKS.push({ name, ok, detail }); }
   await page.waitForTimeout(800);
 
   // connect the first two cards (adjacent stages, same lane)
-  await page.click('#btnConnect');
+  await page.keyboard.press('c');
   const els = await page.locator('.card').all();
   const a = await els[0].boundingBox(), b = await els[1].boundingBox();
   await page.mouse.click(a.x + a.width / 2, a.y + a.height / 2);

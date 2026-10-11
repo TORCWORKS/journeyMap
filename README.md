@@ -18,7 +18,7 @@ A single-file web app for mapping a nonprofit's donor journey visually — stage
 - **Cards** = the items in each stage × lane cell. Click `+ card` or empty cell space to add; **click a card to edit it** (title, note, Current/Idea kind, priority — or press `Enter` on a selected card); drag to move between cells; `Delete` removes the selected card.
 - **Current vs Ideas** — every card is either **Current** (solid border) or **💡 Idea** (dashed, with a low/med/high priority dot): an aspiration you're weighing. Switch a card's kind in its editor; filter the whole map to `All / Current / Ideas` (Ideas-only ≈ your to-do view). The exported PNG shows both, with a legend line.
 - **Metrics** — any card can carry a three-number KPI: *current → target (benchmark norm)*, e.g. `First→second gift conversion · 22% → 30% (norm 35%)`. Attach one via `＋ Metric` in the card editor. The benchmark column auto-fills as a **suggested norm** when it recognises the metric name (e.g. retention, conversion, reactivation) — always editable, and confirm it before presenting. Stages with metrics show a compact summary strip under their stage header, so a leader can scan for the red ones.
-- **Connect mode** = draw flow arrows between cards (click start card → target card; click again to remove).
+- **Flow arrows** = draw connections between cards: open a card → **⇢ Link card**, then click the target; click a linked pair again (or press **C** to enter connect mode) to remove.
 - **Fit width / zoom** = toolbar dropdown; *Fit width* keeps the whole journey on screen (default).
 
 ### Saving & exporting

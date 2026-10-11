@@ -10,7 +10,7 @@ const APP='file://'+path.join(__dirname,'..','index.html')+'#annual';
   await p.goto(APP); await p.waitForTimeout(900);
   const els=await p.locator('.card').all();
   const bb=async i=>await els[i].boundingBox();
-  await p.click('#btnConnect');
+  await p.keyboard.press('c');
   for(const [i,j] of [[0,1],[1,3],[2,4]]){
     const a=await bb(i), c=await bb(j);
     await p.mouse.click(a.x+a.width/2,a.y+a.height/2); await p.waitForTimeout(70);

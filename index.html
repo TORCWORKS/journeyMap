@@ -43,7 +43,13 @@
   }
   .zoomsel:hover{border-color:var(--line-strong)}
   body.premap .rowbar{display:none}
-  .brand{display:flex;align-items:center;gap:9px;margin-right:6px}
+  .brand{display:flex;align-items:center;gap:9px;margin-right:6px;cursor:pointer}
+  .brand:hover .logo{filter:brightness(1.08)}
+  .startClose{
+    position:absolute;top:14px;right:18px;z-index:5;border:none;background:transparent;
+    color:var(--muted);font-size:22px;cursor:pointer;padding:2px 8px;border-radius:8px;
+  }
+  .startClose:hover{background:#f4f0e6;color:var(--rose)}
   .logo{
     width:30px;height:30px;border-radius:9px;background:var(--accent);color:#fff;
     display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;
@@ -162,9 +168,10 @@
   .connectmode .card:hover{outline:2px solid var(--accent);outline-offset:1px;cursor:crosshair}
 
   .coladd{
-    border:2px dashed var(--line-strong);border-radius:12px;min-height:120px;
-    display:flex;align-items:center;justify-content:center;color:var(--muted);
-    font-size:13px;font-weight:600;cursor:pointer;transition:all .12s;position:sticky;top:0;
+    border:2px dashed var(--line-strong);border-radius:10px;min-height:0;
+    align-self:stretch; display:flex;align-items:center;justify-content:center;color:var(--muted);
+    font-size:12.5px;font-weight:650;cursor:pointer;transition:all .12s;position:sticky;top:0;
+    padding:0 6px;white-space:nowrap;
   }
   .coladd:hover{border-color:var(--accent);color:var(--accent-2);background:var(--accent-soft)}
 
@@ -281,12 +288,12 @@
     body.method-open .methodsheet{position:static;transform:none;width:100%;max-height:none;overflow:visible;display:flex;box-shadow:none;border:none}
     body.method-open .methodsheet .mhead,body.method-open .methodsheet .mfoot{position:static}
   }
-  #mapsItems .mrow{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid #f0eadd;cursor:pointer;border-radius:8px}
-  #mapsItems .mrow:hover{background:#f6f2e8}
+  #mapsItems .mrow,#tplItems .mrow{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid #f0eadd;cursor:pointer;border-radius:8px;width:100%;border:none;background:transparent;text-align:left;color:inherit}
+  #mapsItems .mrow:hover,#tplItems .mrow:hover{background:#f6f2e8}
   #mapsItems .mrow.on{background:var(--accent-soft)}
-  #mapsItems .mi{flex:1;min-width:0}
-  #mapsItems .mt{font-weight:650;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#26221b}
-  #mapsItems .ms{font-size:11px;color:var(--muted);margin-top:1px}
+  #mapsItems .mi,#tplItems .mi{flex:1;min-width:0}
+  #mapsItems .mt,#tplItems .mt{font-weight:650;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#26221b}
+  #mapsItems .ms,#tplItems .ms{font-size:11px;color:var(--muted);margin-top:1px}
   #mapsItems .ma{display:flex;gap:2px;opacity:0}
   #mapsItems .mrow:hover .ma{opacity:1}
   #mapsItems .act{border:none;background:transparent;color:var(--muted);cursor:pointer;border-radius:6px;padding:3px 7px;font-size:12px}
@@ -312,21 +319,19 @@
 </head>
 <body class="premap">
   <header class="toolbar">
-    <div class="brand"><div class="logo">JM</div><div class="brand-name">Journey<em>Map</em></div></div>
+    <div class="brand" id="brandHome" title="Back to the start screen"><div class="logo">JM</div><div class="brand-name">Journey<em>Map</em></div></div>
     <input id="mapTitle" class="maptitle" placeholder="Untitled donor journey" spellcheck="false">
     <div class="spacer"></div>
     <button id="btnMaps" class="btn btn-ghost" title="Your saved maps">My maps <span class="icon">▾</span></button>
     <button id="btnTpl" class="btn btn-ghost">Templates <span class="icon">▾</span></button>
     <button id="btnStage" class="btn"> <span class="icon">+</span> Stage</button>
-    <button id="btnConnect" class="btn btn-ghost" title="Draw flow connections between cards">Connect</button>
     <span class="sep"></span>
     <button id="btnUndo" class="btn btn-ghost" title="Undo (Ctrl+Z)" disabled><span class="icon">↶</span></button>
     <button id="btnRedo" class="btn btn-ghost" title="Redo (Ctrl+Shift+Z)" disabled><span class="icon">↷</span></button>
     <span class="sep"></span>
     <button id="btnSave" class="btn btn-ghost" title="Download as JSON">Save file</button>
     <button id="btnLoad" class="btn btn-ghost" title="Open a saved map">Load</button>
-    <button id="btnPng" class="btn" title="Export a clean image of the map">Export PNG</button>
-    <button id="btnPdf" class="btn btn-ghost" title="Print to PDF">PDF</button>
+    <button id="btnExport" class="btn" title="Export the map">Export <span class="icon">▾</span></button>
     <select id="zoomSel" class="zoomsel" title="Zoom">
       <option value="fit" selected>Fit width</option>
       <option value="0.5">50%</option>
@@ -360,6 +365,7 @@
       </div>
     </div>
     <div id="empty" class="empty">
+    <button id="startClose" class="startClose" style="display:none" title="Back to your map">✕</button>
       <div class="wrap">
         <div class="eyebrow">START HERE</div>
         <h1>Map a <em>donor journey</em> your team owns.</h1>
@@ -410,6 +416,7 @@
     </div>
     <div class="efoot">
       <button id="eDelete" class="btn btn-danger" style="padding:6px 10px;font-size:12px">Delete</button>
+      <button id="eLink" class="btn btn-ghost" style="padding:6px 10px;font-size:12px" title="Draw a flow arrow from this card to another">⇢ Link card</button>
       <span class="hint">Esc closes · drag to move</span>
     </div>
   </div>
@@ -428,6 +435,13 @@
     </div>
   </div>
 
+  <div id="exportMenu" class="backdrop" style="display:none;z-index:95;align-items:flex-start;background:transparent">
+    <div class="modal" style="width:250px;padding:8px">
+      <button class="tpl" data-fmt="png" style="width:100%;border:none;border-bottom:1px solid var(--line);border-radius:0;padding:10px 8px;display:flex;align-items:center;gap:9px"><span>🖼️</span><span style="font-weight:600">PNG image</span><span class="t-cat" style="margin:0 0 0 auto">board-ready</span></button>
+      <button class="tpl" data-fmt="pdf" style="width:100%;border:none;border-radius:0;padding:10px 8px;display:flex;align-items:center;gap:9px"><span>📄</span><span style="font-weight:600">PDF (print)</span><span class="t-cat" style="margin:0 0 0 auto">whole map</span></button>
+    </div>
+  </div>
+
   <div id="modalHelp" class="backdrop" style="display:none">
     <div class="modal">
       <h3>Using JourneyMap</h3>
@@ -435,13 +449,13 @@
         <li><b>Stages</b> — the columns of the journey, left to right. Rename by clicking, delete with the <span class="keys">×</span>, add stages with <span class="keys">+ Stage</span> or the dashed column at the end.</li>
         <li><b>Lanes</b> — each row is a layer: what donors <b>experience</b>, the <b>channels</b> they use, what <b>your org does</b>, and <b>gaps &amp; opportunities</b>. Toggle lanes in the bar above.</li>
         <li><b>Cards</b> — click any cell to add one; <b>click a card to edit it</b> (title, note, Current/Idea kind, priority) — or press <span class="keys">Enter</span> on a selected card; <span class="keys">⋯</span> does the same. Drag cards between cells to move them; <span class="keys">Delete</span> removes the selected card.</li>
-        <li><b>Connect mode</b> — press <span class="keys">Connect</span>, then click two cards to draw a flow line. Click again to remove it.</li>
+        <li><b>Flow arrows</b> — open a card, choose <span class="keys">⇢ Link card</span> (or press <span class="keys">C</span>), then click the card it flows to. Click a linked pair again to remove the arrow.</li>
         <li><b>Current vs Ideas</b> — cards are <b>Current</b> (solid) or <b>💡 Idea</b> (dashed, with a low/med/high priority dot): an aspiration you'd want to introduce. Set it in the card editor; filter the map with <span class="keys">All / Current / Ideas</span>. “Ideas only” is your to-do view.</li>
         <li><b>Metrics</b> — any card can carry a number: <b>current → target (benchmark norm)</b>, e.g. “First→second gift conversion 22% → 30% (norm 35%)”. Attach one in the card editor (benchmark auto-fills as a *suggested norm* where known — confirm it before presenting). The stages that have metrics show a compact summary strip under their header.</li>
         <li><b>Why this approach?</b> — the whole method &amp; its sources (journey mapping &amp; service design, donor-centred fundraising, moves management) live on the <span class="keys">Method</span> page in the top bar; it prints or saves to PDF when you need to share it.</li>
         <li><b>Undo</b> — <span class="keys">Ctrl+Z</span> / <span class="keys">Ctrl+Shift+Z</span>. Everything autosaves to this browser.</li>
         <li><b>Your maps</b> — the <span class="keys">My maps</span> dropdown holds every map you've worked on: click one to open it, or hover for ✎ rename · ⧉ duplicate · × delete. Templates start new maps; “New blank map” starts from scratch. Maps save themselves as you work (up to 24 kept).</li>
-        <li><b>Export</b> — <span class="keys">Export PNG</span> makes a clean image for decks; <span class="keys">PDF</span> prints the whole map. <span class="keys">Save file</span> keeps a copy to reload later.</li>
+        <li><b>Export</b> — the <span class="keys">Export ▾</span> menu offers <b>PNG image</b> (a clean board-ready render) or <b>PDF (print)</b>. <span class="keys">Save file</span> keeps a portable copy.</li>
       </ul>
       <button class="btn close" id="helpClose">Got it</button>
     </div>
@@ -898,6 +912,7 @@ function openMap(id){
   toast('Opened: '+(state.doc.title||'Untitled map'));
 }
 function deleteMap(id){
+  $('#mapsMenu').style.display='none';
   state.lib.maps=state.lib.maps.filter(m=>m.id!==id); saveLibNow();
   if(state.lib.current===id){
     state.lib.current=state.lib.maps.length?state.lib.maps[0].id:null;
@@ -1178,7 +1193,6 @@ function onDragUp(e){
 /* ================= connect mode ================= */
 function setConnect(on){
   state.connectMode=on; state.edgeFrom=null;
-  $('#btnConnect').classList.toggle('active',on);
   document.body.classList.toggle('connectmode',on);
   $$('.card.hint-source').forEach(x=>x.classList.remove('hint-source'));
   toast(on?'Connect mode: click the start card, then the target. Esc to exit.':'');
@@ -1302,22 +1316,43 @@ function initEvents(){
     else closeEditor();
     $('#tplMenu').style.display='none';
     $('#mapsMenu').style.display='none';
+    $('#exportMenu').style.display='none';
     if(!e.target.closest('.colhead')&&!e.target.closest('.card')&&!e.target.closest('.tpl')&&state.connectMode){ setConnect(false); }
   });
 
   $('#mapTitle').addEventListener('input',()=>{ state.doc.title=$('#mapTitle').value; saveSoon(); });
   $('#mapTitle').addEventListener('change',()=>pushHist(false));
   $('#btnStage').addEventListener('click',()=>addStage());
-  $('#btnConnect').addEventListener('click',()=>setConnect(!state.connectMode));
+  $('#eLink').addEventListener('click',()=>{
+    // 'Link card' in the editor: commit a new card first, then start connect mode with it as the source
+    if(editing&&editing.new){ saveEditor(); }
+    const src=editing&&editing.card?editing.card.id:(state.sel&&state.sel.type==='card'?state.sel.id:null);
+    closeEditor();
+    setConnect(true);
+    if(src){ state.edgeFrom=src; $$('.card.hint-source').forEach(x=>x.classList.remove('hint-source')); const el=$('.card[data-id="'+src+'"]'); if(el) el.classList.add('hint-source'); toast('Now click the card this one flows to.'); }
+    else toast('Connect mode: click the start card, then the target. Esc to exit.');
+  });
   $('#btnUndo').addEventListener('click',()=>doUndo());
   $('#btnRedo').addEventListener('click',()=>doRedo());
   $('#btnSave').addEventListener('click',saveJSON);
   $('#btnLoad').addEventListener('click',()=>$('#fileInput').click());
   $('#fileInput').addEventListener('change',loadJSONFile);
-  $('#btnPng').addEventListener('click',()=>exportPNG());
-  $('#btnPdf').addEventListener('click',()=>window.print());
+  $('#btnExport').addEventListener('click',e=>{ e.stopPropagation(); $('#exportMenu').style.display='flex'; });
+  $('#exportMenu').addEventListener('click',e=>{
+    const o=e.target.closest('[data-fmt]');
+    if(o){ $('#exportMenu').style.display='none'; if(o.dataset.fmt==='png') exportPNG(); else window.print(); return; }
+    if(e.target===e.currentTarget) $('#exportMenu').style.display='none';
+  });
   $('#zoomSel').addEventListener('change',e=>{ state.zoomMode=e.target.value; applyZoom(); });
   window.addEventListener('resize',()=>{ if(state.zoomMode==='fit') applyZoom(); });
+  $('#brandHome').addEventListener('click',()=>{
+    if($('#empty').style.display!=='none') return;
+    const has=!!state.doc;
+    $('#startClose').style.display=has?'block':'none';
+    $('#empty').style.display='';
+    if(!has) document.body.classList.add('premap');
+  });
+  $('#startClose').addEventListener('click',()=>{ $('#empty').style.display='none'; });
   $('#btnMethod').addEventListener('click',toggleMethod);
   $('#methodClose').addEventListener('click',closeMethod);
   $('#methodPrint').addEventListener('click',()=>{ document.body.classList.add('method-open'); setTimeout(()=>window.print(),80); });
@@ -1373,7 +1408,7 @@ function initEvents(){
     if(editing&&editing.card){ const id=editing.card.id; closeEditor(); deleteCard(id); }
   });
 
-  ws.addEventListener('keydown',onKey);
+  document.addEventListener('keydown',onKey);   // shortcuts work regardless of focus (typing is guarded inside onKey)
 }
 function renderRowChips(){
   const box=$('#rowChips'); box.innerHTML='';
@@ -1414,6 +1449,7 @@ function onKey(e){
   const tag=(e.target.tagName||'').toUpperCase();
   const typing=tag==='INPUT'||tag==='TEXTAREA'||e.target.isContentEditable;
   if((e.key==='Delete'||e.key==='Backspace')&&!typing){ e.preventDefault(); deleteSelection(); return; }
+  if(!(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='c'&&!typing){ setConnect(!state.connectMode); toast(state.connectMode?'Connect mode: click the start card, then the target. Esc to exit.':'Connect mode off'); return; }
   if(e.key==='Enter'&&!typing&&state.sel&&state.sel.type==='card'){
     const c=state.doc.cards.find(x=>x.id===state.sel.id); const el=$('.card[data-id="'+state.sel.id+'"]');
     if(c&&el){ e.preventDefault(); openEditor(c,null,el); }
@@ -1422,6 +1458,7 @@ function onKey(e){
   if(e.key==='Escape'){
     if(editing) closeEditor();
     else if(state.connectMode){ setConnect(false); }
+    else if($('#empty').style.display!=='none'&&state.doc){ $('#empty').style.display='none'; }
     else { deselect(); }
     return;
   }
@@ -1711,16 +1748,17 @@ function updateMapsMenu(){
 function buildTplMenu(){
   const box=$('#tplItems'); box.innerHTML='';
   const mk=k=>{
-    const btn=document.createElement('button'); btn.className='tpl'; btn.dataset.tpl=k;
-    btn.style.cssText='width:100%;border:none;border-bottom:1px solid var(--line);border-radius:0;padding:9px 8px;display:flex;align-items:center;gap:8px;min-height:0';
-    btn.innerHTML='<span>'+(TPL_ICON[k]||'🗂️')+'</span><span style="font-weight:600">'+esc(TPL_NAME[k]||k)+'</span><span class="t-cat" style="margin:0 0 0 auto">'+esc(TPL_CAT[k]||'')+'</span>';
+    const btn=document.createElement('button'); btn.dataset.tpl=k; btn.className='mrow';
+    const inner=document.createElement('span'); inner.className='mi'; inner.innerHTML='<span class="mt">'+(TPL_ICON[k]||'🗂️')+' '+esc(TPL_NAME[k]||k)+'</span>';
+    btn.appendChild(inner);
+    const cat=document.createElement('span'); cat.className='ms'; cat.textContent=TPL_CAT[k]||''; btn.appendChild(cat);
     btn.addEventListener('click',()=>{ $('#tplMenu').style.display='none'; applyTemplate(k); });
     box.appendChild(btn);
   };
   TPL_ORDER.forEach(k=>mk(k));
-  const b=document.createElement('button'); b.className='tpl'; b.dataset.tpl='blank';
-  b.style.cssText='width:100%;border:none;border-radius:0;padding:9px 8px;display:flex;align-items:center;gap:8px;min-height:0';
-  b.innerHTML='<span>⬜</span><span style="font-weight:600">Blank map</span>';
+  const b=document.createElement('button'); b.dataset.tpl='blank'; b.className='mrow';
+  const bi=document.createElement('span'); bi.className='mi'; bi.innerHTML='<span class="mt">⬜ Blank map</span>'; b.appendChild(bi);
+  const bc=document.createElement('span'); bc.className='ms'; bc.textContent='Start fresh'; b.appendChild(bc);
   b.addEventListener('click',()=>{ $('#tplMenu').style.display='none'; applyTemplate('blank'); });
   box.appendChild(b);
 }
