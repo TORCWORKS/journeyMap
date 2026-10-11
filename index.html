@@ -281,6 +281,18 @@
     body.method-open .methodsheet{position:static;transform:none;width:100%;max-height:none;overflow:visible;display:flex;box-shadow:none;border:none}
     body.method-open .methodsheet .mhead,body.method-open .methodsheet .mfoot{position:static}
   }
+  #mapsItems .mrow{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid #f0eadd;cursor:pointer;border-radius:8px}
+  #mapsItems .mrow:hover{background:#f6f2e8}
+  #mapsItems .mrow.on{background:var(--accent-soft)}
+  #mapsItems .mi{flex:1;min-width:0}
+  #mapsItems .mt{font-weight:650;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#26221b}
+  #mapsItems .ms{font-size:11px;color:var(--muted);margin-top:1px}
+  #mapsItems .ma{display:flex;gap:2px;opacity:0}
+  #mapsItems .mrow:hover .ma{opacity:1}
+  #mapsItems .act{border:none;background:transparent;color:var(--muted);cursor:pointer;border-radius:6px;padding:3px 7px;font-size:12px}
+  #mapsItems .act:hover{background:#e9e2d2;color:#26221b}
+  #mapsItems .act.del:hover{color:var(--rose);background:#fdf0ec}
+  #mapsItems .emptylib{padding:14px;color:var(--muted);font-size:12.5px}
   .toast{
     position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:130;
     background:#2a251c;color:#fff;font-size:13px;padding:9px 16px;border-radius:999px;
@@ -303,6 +315,7 @@
     <div class="brand"><div class="logo">JM</div><div class="brand-name">Journey<em>Map</em></div></div>
     <input id="mapTitle" class="maptitle" placeholder="Untitled donor journey" spellcheck="false">
     <div class="spacer"></div>
+    <button id="btnMaps" class="btn btn-ghost" title="Your saved maps">My maps <span class="icon">▾</span></button>
     <button id="btnTpl" class="btn btn-ghost">Templates <span class="icon">▾</span></button>
     <button id="btnStage" class="btn"> <span class="icon">+</span> Stage</button>
     <button id="btnConnect" class="btn btn-ghost" title="Draw flow connections between cards">Connect</button>
@@ -408,6 +421,13 @@
     </div>
   </div>
 
+  <div id="mapsMenu" class="backdrop" style="display:none;z-index:95;align-items:flex-start;background:transparent">
+    <div class="modal" style="width:330px;padding:8px">
+      <div id="mapsItems"></div>
+      <button id="mapsNewBlank" style="width:100%;background:none;border:none;border-top:1px solid var(--line);color:var(--accent-2);font-size:12.5px;font-weight:700;padding:10px 8px;cursor:pointer">＋ New blank map</button>
+    </div>
+  </div>
+
   <div id="modalHelp" class="backdrop" style="display:none">
     <div class="modal">
       <h3>Using JourneyMap</h3>
@@ -419,7 +439,8 @@
         <li><b>Current vs Ideas</b> — cards are <b>Current</b> (solid) or <b>💡 Idea</b> (dashed, with a low/med/high priority dot): an aspiration you'd want to introduce. Set it in the card editor; filter the map with <span class="keys">All / Current / Ideas</span>. “Ideas only” is your to-do view.</li>
         <li><b>Metrics</b> — any card can carry a number: <b>current → target (benchmark norm)</b>, e.g. “First→second gift conversion 22% → 30% (norm 35%)”. Attach one in the card editor (benchmark auto-fills as a *suggested norm* where known — confirm it before presenting). The stages that have metrics show a compact summary strip under their header.</li>
         <li><b>Why this approach?</b> — the whole method &amp; its sources (journey mapping &amp; service design, donor-centred fundraising, moves management) live on the <span class="keys">Method</span> page in the top bar; it prints or saves to PDF when you need to share it.</li>
-        <li><b>Undo</b> — <span class="keys">Ctrl+Z</span> / <span class="keys">Ctrl+Shift+Z</span>. Your map autosaves in this browser.</li>
+        <li><b>Undo</b> — <span class="keys">Ctrl+Z</span> / <span class="keys">Ctrl+Shift+Z</span>. Everything autosaves to this browser.</li>
+        <li><b>Your maps</b> — the <span class="keys">My maps</span> dropdown holds every map you've worked on: click one to open it, or hover for ✎ rename · ⧉ duplicate · × delete. Templates start new maps; “New blank map” starts from scratch. Maps save themselves as you work (up to 24 kept).</li>
         <li><b>Export</b> — <span class="keys">Export PNG</span> makes a clean image for decks; <span class="keys">PDF</span> prints the whole map. <span class="keys">Save file</span> keeps a copy to reload later.</li>
       </ul>
       <button class="btn close" id="helpClose">Got it</button>
@@ -763,7 +784,7 @@ const TPL_BLURB={
 /* ================= state ================= */
 const state={
   doc:null,
-
+  lib:{maps:[],current:null},
   sel:null,            // {type:'card'|'stage', id}
   hist:[], hi:-1,
   connectMode:false, edgeFrom:null,
@@ -809,7 +830,20 @@ function kindVisible(c){
   if(state.showKinds==='both') return true;
   return state.showKinds==='idea' ? c.kind==='idea' : c.kind!=='idea';
 }
-const LSKEY='djm.doc.v1';
+const LSKEY='djm.doc.v1';     // legacy single-slot (migrated once into the library)
+const LIBKEY='djm.lib.v1';     // the maps library: { maps:[{id,doc,updatedAt}], current }
+let libSaveT=null;
+function saveLibSoon(){ clearTimeout(libSaveT); libSaveT=setTimeout(()=>{ try{ localStorage.setItem(LIBKEY,JSON.stringify(state.lib)); }catch(e){} },300); }
+function saveLibNow(){ try{ localStorage.setItem(LIBKEY,JSON.stringify(state.lib)); }catch(e){} }
+function loadLib(){ try{ const raw=localStorage.getItem(LIBKEY); if(raw){ const l=JSON.parse(raw); if(l&&Array.isArray(l.maps)) return l; } }catch(e){} return null; }
+function libEntry(id){ return state.lib&&state.lib.maps.find(m=>m.id===id); }
+function addMapEntry(doc){
+  const id=uid();
+  state.lib.maps.unshift({id:id,doc:doc,updatedAt:Date.now()});
+  trimMaps(); saveLibSoon();
+  return id;
+}
+function trimMaps(){ while(state.lib.maps.length>24) state.lib.maps.pop(); }
 
 /* ================= history ================= */
 let lastSnap=null;
@@ -833,8 +867,14 @@ function updateUndo(){
 
 /* ================= persistence ================= */
 let saveT=null;
-function saveSoon(){ clearTimeout(saveT); saveT=setTimeout(()=>{ try{ localStorage.setItem(LSKEY,JSON.stringify(state.doc)); }catch(e){} },350); }
-function loadSaved(){ try{ const raw=localStorage.getItem(LSKEY); if(raw){ const d=JSON.parse(raw); if(d&&Array.isArray(d.stages)) return d; } }catch(e){} return null; }
+function saveSoon(){ clearTimeout(saveT); saveT=setTimeout(()=>{ writeCurrentMap(); },350); }
+function writeCurrentMap(){
+  if(!state.doc) return;
+  const e=libEntry(state.lib.current);
+  if(e){ e.doc=state.doc; e.updatedAt=Date.now(); }
+  saveLibSoon();
+}
+function loadSaved(){ try{ const raw=localStorage.getItem(LSKEY); if(raw){ const d=JSON.parse(raw); if(d&&Array.isArray(d.stages)) return d; } }catch(e){} return null; }  // legacy, migration only
 
 /* ================= document ops ================= */
 function commit(render=true){
@@ -843,6 +883,31 @@ function commit(render=true){
   scheduleEdges();
   saveSoon();
 }
+function openMap(id){
+  const e=libEntry(id); if(!e) return;
+  writeCurrentMap();                       // flush any edits on the map we're leaving
+  state.doc=e.doc; state.lib.current=id;
+  state.sel=null; state.edgeFrom=null; closeEditor();
+  state.hist=[]; state.hi=-1; lastSnap=null; updateUndo();   // history is per-session, not per-map
+  hideEmpty();
+  $('#mapTitle').value=state.doc.title||'';
+  document.title=(state.doc.title||'Donor journey')+' — JourneyMap';
+  renderAll(); renderRowChips(); applyZoom();
+  updateMapsMenu();
+  saveLibSoon();
+  toast('Opened: '+(state.doc.title||'Untitled map'));
+}
+function deleteMap(id){
+  state.lib.maps=state.lib.maps.filter(m=>m.id!==id); saveLibNow();
+  if(state.lib.current===id){
+    state.lib.current=state.lib.maps.length?state.lib.maps[0].id:null;
+    state.doc=null;
+    if(state.lib.current) openMap(state.lib.current);
+    else { closeEditor(); state.sel=null; renderAll(); renderRowChips(); updateMapsMenu(); showEmptyState(); saveLibNow(); }
+  }
+  saveLibSoon();
+}
+function showEmptyState(){ $('#empty').style.display=''; document.body.classList.add('premap'); $('#mapTitle').value=''; document.title='JourneyMap — Donor Journey Mapping'; }
 function applyDoc(doc,push=true){
   ensureRows(doc);
   state.doc=doc;
@@ -853,6 +918,7 @@ function applyDoc(doc,push=true){
   if(push) pushHist(true);
   renderAll();
   renderRowChips();
+  updateMapsMenu();
 }
 function addStage(name){
   if(!state.doc) applyTemplate('blank');
@@ -904,6 +970,7 @@ function applyZoom(){
 const COLW=294, GAP=14, GUTTER=168;
 function renderAll(){
   const g=$('#grid');
+  if(!state.doc){ if(g){ g.innerHTML=''; if(edgesSvg&&edgesSvg.parentNode!==g) g.appendChild(edgesSvg); } updateStatus(); return; }
   g.style.setProperty('--ncols',(state.doc.stages.length+1));
   g.innerHTML='';
   g.appendChild(edgesSvg);                                                 // keep the connector layer as the first (bottom) child
@@ -1234,6 +1301,7 @@ function initEvents(){
     if(editing) { saveEditor(); closeEditor(); }
     else closeEditor();
     $('#tplMenu').style.display='none';
+    $('#mapsMenu').style.display='none';
     if(!e.target.closest('.colhead')&&!e.target.closest('.card')&&!e.target.closest('.tpl')&&state.connectMode){ setConnect(false); }
   });
 
@@ -1258,10 +1326,11 @@ function initEvents(){
   $('#helpClose').addEventListener('click',()=>$('#modalHelp').style.display='none');
   $('#modalHelp').addEventListener('click',e=>{ if(e.target.id==='modalHelp') $('#modalHelp').style.display='none'; });
 
-  $('#btnTpl').addEventListener('click',e=>{ e.stopPropagation(); $('#tplMenu').style.display='flex'; });
+  $('#btnMaps').addEventListener('click',e=>{ e.stopPropagation(); $('#tplMenu').style.display='none'; updateMapsMenu(); $('#mapsMenu').style.display='flex'; });
+  $('#mapsMenu').addEventListener('click',e=>{ if(e.target===e.currentTarget) $('#mapsMenu').style.display='none'; });
+  $('#mapsNewBlank').addEventListener('click',()=>{ $('#mapsMenu').style.display='none'; applyTemplate('blank'); });
+  $('#btnTpl').addEventListener('click',e=>{ e.stopPropagation(); $('#mapsMenu').style.display='none'; $('#tplMenu').style.display='flex'; });
   $('#tplMenu').addEventListener('click',e=>{
-    const t=e.target.closest('[data-tpl]');
-    if(t){ applyTemplate(t.dataset.tpl); $('#tplMenu').style.display='none'; return; }
     if(e.target.id==='tplClear'){
       $('#tplMenu').style.display='none';
       if(confirm('Replace the current map with a blank one?')) applyTemplate('blank');
@@ -1365,8 +1434,8 @@ function onKey(e){
 function applyTemplate(key){
   const doc=TEMPLATES[key]();
   doc.edges=[];
-  document.title=doc.title+' — JourneyMap';
-  applyDoc(doc);
+  const id=addMapEntry(doc);
+  openMap(id);
   toast('Loaded: '+doc.title);
 }
 
@@ -1388,8 +1457,11 @@ function loadJSONFile(e){
       if(!(d&&Array.isArray(d.stages))) throw 0;
       d.cards=Array.isArray(d.cards)?d.cards:[];
       d.edges=Array.isArray(d.edges)?d.edges:[];
-      applyDoc(d);
-      toast('Opened: '+(d.title||f.name));
+      ensureRows(d);
+      const id=addMapEntry(d);
+      openMap(id);
+      if(!d.title||d.title==='Untitled donor journey') d.title=f.name.replace(/\.json$/i,'');
+      toast('Imported: '+(d.title||f.name));
     }catch(err){ toast('That file doesn\'t look like a JourneyMap'); }
     e.target.value='';
   };
@@ -1596,20 +1668,60 @@ function renderTplTiles(){
   b.addEventListener('click',()=>applyTemplate('blank'));
   grid.appendChild(b);
 }
+function updateMapsMenu(){
+  const box=$('#mapsItems'); if(!box) return;
+  box.innerHTML='';
+  const maps=state.lib?state.lib.maps:[];
+  if(!maps.length){ box.innerHTML='<div class="emptylib">No maps yet — start from a template.</div>'; return; }
+  maps.forEach(m=>{
+    const row=document.createElement('div'); row.className='mrow'+(m.id===state.lib.current?' on':'');
+    const when=new Date(m.updatedAt).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+    row.innerHTML='<div class="mi"><div class="mt">'+esc(m.doc.title||'Untitled map')+'</div><div class="ms">'+esc(when)+' · '+m.doc.cards.length+' cards</div></div>'
+      +'<div class="ma">'
+      +'<button class="act" data-act="rename" title="Rename">✎</button>'
+      +'<button class="act" data-act="dup" title="Duplicate">⧉</button>'
+      +'<button class="act del" data-act="del" title="Delete">×</button>'
+      +'</div>';
+    row.addEventListener('click',e=>{
+      const act=e.target.closest('.act');
+      if(act){ e.stopPropagation();
+        const a=act.dataset.act;
+        if(a==='rename'){
+          const nm=prompt('Map name:',m.doc.title||'');
+          if(nm!==null&&nm.trim()){ m.doc.title=nm.trim(); if(m.id===state.lib.current) $('#mapTitle').value=m.doc.title; updateMapsMenu(); saveSoon(); }
+        }
+        else if(a==='dup'){
+          const cpy=JSON.parse(JSON.stringify(m.doc));
+          cpy.title=(m.doc.title||'Untitled map')+' (copy)';
+          cpy.id=uid();
+          cpy.stages.forEach(s=>s.id=uid());
+          // remap card.stage to the copy's stage ids (by position); card ids stay (edges intact)
+          cpy.cards.forEach(c=>{ const idx=m.doc.stages.findIndex(ms=>ms.id===c.stage); if(idx>=0) c.stage=cpy.stages[idx].id; });
+          const id2=addMapEntry(cpy);
+          openMap(id2); $('#mapsMenu').style.display='none';
+        }
+        else if(a==='del'){ if(confirm('Delete “'+(m.doc.title||'Untitled map')+'”?')) deleteMap(m.id); }
+        return;
+      }
+      openMap(m.id); $('#mapsMenu').style.display='none';
+    });
+    box.appendChild(row);
+  });
+}
 function buildTplMenu(){
   const box=$('#tplItems'); box.innerHTML='';
   const mk=k=>{
     const btn=document.createElement('button'); btn.className='tpl'; btn.dataset.tpl=k;
     btn.style.cssText='width:100%;border:none;border-bottom:1px solid var(--line);border-radius:0;padding:9px 8px;display:flex;align-items:center;gap:8px;min-height:0';
     btn.innerHTML='<span>'+(TPL_ICON[k]||'🗂️')+'</span><span style="font-weight:600">'+esc(TPL_NAME[k]||k)+'</span><span class="t-cat" style="margin:0 0 0 auto">'+esc(TPL_CAT[k]||'')+'</span>';
-    btn.addEventListener('click',()=>applyTemplate(k));
+    btn.addEventListener('click',()=>{ $('#tplMenu').style.display='none'; applyTemplate(k); });
     box.appendChild(btn);
   };
   TPL_ORDER.forEach(k=>mk(k));
   const b=document.createElement('button'); b.className='tpl'; b.dataset.tpl='blank';
   b.style.cssText='width:100%;border:none;border-radius:0;padding:9px 8px;display:flex;align-items:center;gap:8px;min-height:0';
   b.innerHTML='<span>⬜</span><span style="font-weight:600">Blank map</span>';
-  b.addEventListener('click',()=>applyTemplate('blank'));
+  b.addEventListener('click',()=>{ $('#tplMenu').style.display='none'; applyTemplate('blank'); });
   box.appendChild(b);
 }
 
@@ -1619,24 +1731,22 @@ function init(){
   initEvents();
   renderTplTiles();
   buildTplMenu();
-  const saved=loadSaved();
-  if(saved){
-    saved.cards=saved.cards||[]; saved.edges=saved.edges||[];
-    ensureRows(saved);
-    state.doc=saved;
-    $('#mapTitle').value=saved.title||'';
-    hideEmpty();
-    renderAll();
-    renderRowChips();
-    updateUndo();
-    document.title=(saved.title||'Donor journey')+' — JourneyMap';
-    toast('Restored your last map');
+  const lib=loadLib();
+  if(lib){ state.lib=lib; }
+  else {
+    const legacy=loadSaved();
+    if(legacy){ legacy.cards=legacy.cards||[]; legacy.edges=legacy.edges||[]; ensureRows(legacy);
+      state.lib={maps:[{id:uid(),doc:legacy,updatedAt:Date.now()}],current:null};
+      state.lib.current=state.lib.maps[0].id; saveLibNow(); }
+    else { state.lib={maps:[],current:null}; }
   }
   const h=(location.hash||'').replace('#','');
   const key=TPL_ALIAS[h]||h;
-  if(!state.doc&&TEMPLATES[key]) setTimeout(()=>applyTemplate(key),0);
+  if(state.lib.current){ openMap(state.lib.current); }
+  else if(state.lib.maps.length){ openMap(state.lib.maps[0].id); }
+  else if(TEMPLATES[key]){ setTimeout(()=>applyTemplate(key),0); }
   setTimeout(applyZoom,50);
-  saveSoon();
+  saveLibSoon();
 }
 init();
 </script>

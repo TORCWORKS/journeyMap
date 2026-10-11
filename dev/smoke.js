@@ -14,6 +14,7 @@ function check(name, ok, detail) {
   const browser = await chromium.launch({ executablePath: CHROME });
   const page = await browser.newPage({ viewport: { width: 1680, height: 950 } });
   const errors = [];
+  page.on('dialog', d => d.accept());
   page.on('pageerror', e => errors.push('PAGEERROR: ' + e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push('CONSOLE: ' + m.text()); });
 
@@ -124,9 +125,30 @@ function check(name, ok, detail) {
 
   await page.reload(); await page.waitForTimeout(800);
   check('autosave restores on reload', (await cards()) === c0 + 1 && (await heads()) === 8, `cards=${await cards()} stages=${await heads()}`);
-  check('no console/page errors', errors.length === 0, errors.join(' | ') || 'clean');
 
-  console.log(`\n${25 - failed}/25 smoke checks passed`);
+  // D-009: maps library (workspace) — mutates the current map, so it runs after the restore check
+  await page.click('#btnMaps'); await page.waitForTimeout(120);
+  check('My maps lists the current map', (await page.evaluate(() => document.querySelectorAll('#mapsItems .mrow').length)) >= 1);
+  await page.mouse.click(1450, 300); await page.waitForTimeout(80);
+  await page.click('#btnTpl'); await page.waitForTimeout(120);
+  await page.evaluate(() => { [...document.querySelectorAll('#tplItems [data-tpl]')].find(b => b.dataset.tpl === 'blank').click(); });
+  await page.waitForTimeout(250);
+  check('template creates a new library map', (await page.evaluate(() => state.lib.maps.length)) >= 2);
+  await page.click('#btnMaps'); await page.waitForTimeout(120);
+  await page.evaluate(() => { [...document.querySelectorAll('#mapsItems .mrow')].find(r => r.textContent.includes('Annual giving')).click(); });
+  await page.waitForTimeout(250);
+  check('switching maps restores the other doc', (await page.evaluate(() => state.doc.title.includes('Annual giving'))) && (await heads()) === 8);
+  await page.click('#btnMaps'); await page.waitForTimeout(120);
+  await page.evaluate(() => { [...document.querySelectorAll('#mapsItems .mrow')].find(r => r.textContent.includes('Annual giving')).querySelector('[data-act="dup"]').click(); });
+  await page.waitForTimeout(250);
+  check('duplicate makes an independent copy', (await page.evaluate(() => state.lib.maps.some(m => m.doc.title.includes('(copy)')))) && (await page.evaluate(() => state.lib.maps.length)) >= 3);
+  await page.click('#btnMaps'); await page.waitForTimeout(120);
+  await page.evaluate(() => { [...document.querySelectorAll('#mapsItems .mrow')].find(r => r.textContent.includes('(copy)')).querySelector('[data-act="del"]').click(); });
+  await page.waitForTimeout(200);
+  check('delete removes the copy', !(await page.evaluate(() => state.lib.maps.some(m => m.doc.title.includes('(copy)')))));
+  check('no console/page errors (after library)', errors.length === 0, errors.join(' | ') || 'clean');
+
+  console.log(`\n${30 - failed}/30 smoke checks passed`);
   await browser.close();
   process.exit(failed ? 1 : 0);
 })().catch(e => { console.error('FATAL', e); process.exit(1); });

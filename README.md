@@ -25,8 +25,9 @@ A single-file web app for mapping a nonprofit's donor journey visually — stage
 | Action | Where | Notes |
 |---|---|---|
 | Autosave | automatic | Saves to this browser's local storage; reloading restores your map. |
+| **My maps** | toolbar dropdown | Your workspace: every map you've worked on, most recent first. Click to open; hover for ✎ rename · ⧉ duplicate · × delete. Maps **autosave as you work** (up to 24 kept in the browser). |
 | Save file | toolbar | Downloads `.journeymap.json` — the portable copy. |
-| Load | toolbar | Opens a saved `.journeymap.json`. |
+| Load | toolbar | Imports a saved `.journeymap.json` as a new map in your library. |
 | Export PNG | toolbar | Clean, board-ready image of the map (title, legend, arrows). |
 | PDF | toolbar | Print dialog → save as PDF (uses the browser's print). |
 
