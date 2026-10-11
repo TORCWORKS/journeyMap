@@ -242,7 +242,8 @@
     cursor:pointer;text-align:left;transition:all .14s;box-shadow:var(--shadow-s);display:flex;flex-direction:column;gap:2px;
   }
   .tpl .t-cat{font-size:9.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
-  .tpl .t-ic{font-size:20px}
+  .tpl .t-n{display:flex;align-items:center;gap:8px}
+  .tpl .t-ic{font-size:16px;line-height:1}
   .tpl .t-d{margin-top:auto;font-size:11.5px;line-height:1.4}
   .tpl:hover{border-color:var(--accent);box-shadow:var(--shadow-m);transform:translateY(-2px)}
   .tpl .t-ic{font-size:22px;margin-bottom:8px}
@@ -436,9 +437,9 @@
   </div>
 
   <div id="exportMenu" class="backdrop" style="display:none;z-index:95;align-items:flex-start;background:transparent">
-    <div class="modal" style="width:250px;padding:8px">
-      <button class="tpl" data-fmt="png" style="width:100%;border:none;border-bottom:1px solid var(--line);border-radius:0;padding:10px 8px;display:flex;align-items:center;gap:9px"><span>🖼️</span><span style="font-weight:600">PNG image</span><span class="t-cat" style="margin:0 0 0 auto">board-ready</span></button>
-      <button class="tpl" data-fmt="pdf" style="width:100%;border:none;border-radius:0;padding:10px 8px;display:flex;align-items:center;gap:9px"><span>📄</span><span style="font-weight:600">PDF (print)</span><span class="t-cat" style="margin:0 0 0 auto">whole map</span></button>
+    <div class="modal" style="width:230px;padding:8px">
+      <button class="mrow" data-fmt="png"><span class="mi"><span class="mt">🖼️ PNG image</span></span><span class="ms">board-ready</span></button>
+      <button class="mrow" data-fmt="pdf"><span class="mi"><span class="mt">📄 PDF (print)</span></span><span class="ms">whole map</span></button>
     </div>
   </div>
 
@@ -1337,7 +1338,7 @@ function initEvents(){
   $('#btnSave').addEventListener('click',saveJSON);
   $('#btnLoad').addEventListener('click',()=>$('#fileInput').click());
   $('#fileInput').addEventListener('change',loadJSONFile);
-  $('#btnExport').addEventListener('click',e=>{ e.stopPropagation(); $('#exportMenu').style.display='flex'; });
+  $('#btnExport').addEventListener('click',e=>{ e.stopPropagation(); $('#exportMenu').style.display='flex'; placeMenu($('#exportMenu'),$('#btnExport')); });
   $('#exportMenu').addEventListener('click',e=>{
     const o=e.target.closest('[data-fmt]');
     if(o){ $('#exportMenu').style.display='none'; if(o.dataset.fmt==='png') exportPNG(); else window.print(); return; }
@@ -1361,10 +1362,10 @@ function initEvents(){
   $('#helpClose').addEventListener('click',()=>$('#modalHelp').style.display='none');
   $('#modalHelp').addEventListener('click',e=>{ if(e.target.id==='modalHelp') $('#modalHelp').style.display='none'; });
 
-  $('#btnMaps').addEventListener('click',e=>{ e.stopPropagation(); $('#tplMenu').style.display='none'; updateMapsMenu(); $('#mapsMenu').style.display='flex'; });
+  $('#btnMaps').addEventListener('click',e=>{ e.stopPropagation(); $('#tplMenu').style.display='none'; updateMapsMenu(); $('#mapsMenu').style.display='flex'; placeMenu($('#mapsMenu'),$('#btnMaps')); });
   $('#mapsMenu').addEventListener('click',e=>{ if(e.target===e.currentTarget) $('#mapsMenu').style.display='none'; });
   $('#mapsNewBlank').addEventListener('click',()=>{ $('#mapsMenu').style.display='none'; applyTemplate('blank'); });
-  $('#btnTpl').addEventListener('click',e=>{ e.stopPropagation(); $('#mapsMenu').style.display='none'; $('#tplMenu').style.display='flex'; });
+  $('#btnTpl').addEventListener('click',e=>{ e.stopPropagation(); $('#mapsMenu').style.display='none'; $('#tplMenu').style.display='flex'; placeMenu($('#tplMenu'),$('#btnTpl')); });
   $('#tplMenu').addEventListener('click',e=>{
     if(e.target.id==='tplClear'){
       $('#tplMenu').style.display='none';
@@ -1691,17 +1692,31 @@ function closeMethod(){ $('#methodWrap').style.display='none'; $('#methodSheet')
 function toggleMethod(){ $('#methodWrap').style.display==='flex'?closeMethod():openMethod(); }
 
 /* ================= template picker ================= */
+function placeMenu(menu,btn){
+  // anchor the dropdown panel under its trigger button instead of the top-left corner
+  const modal=menu.querySelector('.modal');
+  const r=btn.getBoundingClientRect();
+  const mw=modal.offsetWidth||280;
+  const left=Math.max(8,Math.min(r.left,innerWidth-mw-8));
+  const top=Math.min(r.bottom+6,innerHeight-60);
+  modal.style.position='fixed';
+  modal.style.left=left+'px';
+  modal.style.top=top+'px';
+  modal.style.margin='0';
+}
 function renderTplTiles(){
   const grid=$('#tplGrid'); grid.innerHTML='';
   const mk=k=>{
     const t=document.createElement('div'); t.className='tpl'; t.dataset.tpl=k;
-    t.innerHTML='<div class="t-cat">'+esc(TPL_CAT[k]||'Portfolio')+'</div><div class="t-ic">'+(TPL_ICON[k]||'🗂️')+'</div><div class="t-n">'+esc(TPL_NAME[k]||k)+'</div><div class="t-d">'+esc(TPL_BLURB[k]||'')+'</div>';
+    t.innerHTML='<div class="t-cat">'+esc(TPL_CAT[k]||'Portfolio')+'</div>'
+      +'<div class="t-n"><span class="t-ic">'+(TPL_ICON[k]||'🗂️')+'</span>'+esc(TPL_NAME[k]||k)+'</div>'
+      +'<div class="t-d">'+esc(TPL_BLURB[k]||'')+'</div>';
     t.addEventListener('click',()=>applyTemplate(k));
     grid.appendChild(t);
   };
   TPL_ORDER.forEach(k=>mk(k));
   const b=document.createElement('div'); b.className='tpl'; b.dataset.tpl='blank';
-  b.innerHTML='<div class="t-cat">Start fresh</div><div class="t-ic">⬜</div><div class="t-n">Blank map</div><div class="t-d">From scratch — add your own stages and lanes.</div>';
+  b.innerHTML='<div class="t-cat">Start fresh</div><div class="t-n"><span class="t-ic">⬜</span>Blank map</div><div class="t-d">From scratch — add your own stages and lanes.</div>';
   b.addEventListener('click',()=>applyTemplate('blank'));
   grid.appendChild(b);
 }
