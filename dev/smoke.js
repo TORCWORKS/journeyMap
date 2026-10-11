@@ -26,8 +26,9 @@ function check(name, ok, detail) {
   await page.waitForTimeout(500);
   await page.evaluate(() => localStorage.clear());
   await page.reload(); await page.waitForTimeout(700);
-  const fresh = await page.evaluate(() => ({ doc: !!state.doc, title: state.doc ? state.doc.title : null, landing: document.getElementById('empty').style.display !== 'none' }));
+  const fresh = await page.evaluate(() => ({ doc: !!state.doc, title: state.doc ? state.doc.title : null, landing: document.getElementById('empty').style.display !== 'none', hint: document.getElementById('startHint').style.display === 'flex' }));
   check('new users default to a blank journey', fresh.doc && fresh.title === 'Untitled donor journey' && !fresh.landing, JSON.stringify(fresh));
+  check('first-run hint shows on the empty blank map', fresh.hint);
   await page.click('#brandHome'); await page.waitForTimeout(250);
   const tileN = await page.evaluate(() => document.querySelectorAll('#tplGrid .tpl').length);
   check('landing shows 6 portfolio tiles', tileN === 6, 'tiles=' + tileN);
@@ -71,6 +72,7 @@ function check(name, ok, detail) {
   await page.keyboard.press("Enter"); // commit the new card
   await page.waitForTimeout(180);
   check('add card', (await cards()) === c0 + 1, `cards=${await cards()} expected ${c0 + 1}`);
+  check('hint hides once the map has cards', (await page.evaluate(() => document.getElementById('startHint').style.display)) === 'none');
 
   const cBefore0 = await page.locator('.cell').nth(0).locator('.card').count();
   const cBefore1 = await page.locator('.cell').nth(1).locator('.card').count();
@@ -114,7 +116,8 @@ function check(name, ok, detail) {
   await page.keyboard.press('Enter'); await page.waitForTimeout(150);
   check('direct editor save persists', (await page.evaluate(() => [...document.querySelectorAll('.card .ctitle')].some(t => t.textContent === 'Edited by click'))));
 
-  // D-008: method page (method & sources explainer)
+  // D-008: method page (method & sources explainer) — now under More ▾
+  await page.click('#btnMore'); await page.waitForTimeout(150);
   await page.click('#btnMethod'); await page.waitForTimeout(200);
   const meth = await page.evaluate(() => ({ len: document.getElementById('methodBody').textContent.length, kalbach: document.getElementById('methodBody').textContent.includes('Kalbach'), moves: document.getElementById('methodBody').textContent.includes('moves management') }));
   check('method page opens with the source lineage', meth.len > 1500 && meth.kalbach && meth.moves, JSON.stringify(meth));
@@ -178,7 +181,7 @@ function check(name, ok, detail) {
   check('start closes back to the current map', (await page.evaluate(() => document.getElementById('empty').style.display === 'none')) && (await page.evaluate(() => document.querySelectorAll('.colhead').length)) >= 1);
   check('no console/page errors (after library)', errors.length === 0, errors.join(' | ') || 'clean');
 
-  console.log(`\n${39 - failed}/39 smoke checks passed`);
+  console.log(`\n${41 - failed}/41 smoke checks passed`);
   await browser.close();
   process.exit(failed ? 1 : 0);
 })().catch(e => { console.error('FATAL', e); process.exit(1); });
