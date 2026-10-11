@@ -35,6 +35,14 @@ A single-file web app for mapping a nonprofit's donor journey visually — stage
 ### Shortcuts
 `Ctrl/⌘+Z` undo · `Ctrl/⌘+Shift+Z` (or `Ctrl+Y`) redo · `Delete` removes the selected card or stage · `Esc` closes the editor / exits connect mode.
 
+## Method & credibility
+`METHOD.md` is the short, printable case for how this approach is grounded:
+journey mapping & service design anatomy (Kalbach; NN/g; Shostack), donor-
+centered fundraising (Burk), and relationship fundraising / moves management
+(Burnett; Dunlop/Cornell) — with every *adaptation* we made (the Recurring
+episodes lane, the suggested-norm benchmarks, the as-is/to-be Ideas layer)
+explicitly labelled as ours rather than inherited doctrine.
+
 ## Files
 ```
 index.html      ← the app (everything: markup, styles, logic)
