@@ -24,6 +24,10 @@ function check(name, ok, detail) { CHECKS.push({ name, ok, detail }); }
   await page.evaluate(() => applyTemplate('annual-giving-example'));
   await page.waitForTimeout(600);
 
+  // drop the example's starter links so 'first path' == the test's own edge
+  await page.evaluate(() => { state.doc.edges = []; commit(); });
+  await page.waitForTimeout(300);
+
   // connect the first two cards (adjacent stages, same lane)
   await page.keyboard.press('c');
   const els = await page.locator('.card').all();

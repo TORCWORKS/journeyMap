@@ -637,13 +637,13 @@ const TEMPLATES={
   'corporate-sponsorship':TPL_corporate,
   'leadership-giving':TPL_leadership,
   blank:TPL_blank,
-  'annual-giving-example':()=>{ const d=TPL_annual_giving(); d.cards=mkCards(d.stages,EXAMPLES['annual-giving']); d.title=TPL_NAME['annual-giving']+' — worked example'; return d; },
-  'leadership-giving-example':()=>{ const d=TPL_leadership(); d.cards=mkCards(d.stages,EXAMPLES['leadership-giving']); d.title=TPL_NAME['leadership-giving']+' — worked example'; return d; },
-  'planned-giving-example':()=>{ const d=TPL_planned_giving(); d.cards=mkCards(d.stages,EXAMPLES['planned-giving']); d.title=TPL_NAME['planned-giving']+' — worked example'; return d; },
-  'signature-events-example':()=>{ const d=TPL_signature_events(); d.cards=mkCards(d.stages,EXAMPLES['signature-events']); d.title=TPL_NAME['signature-events']+' — worked example'; return d; },
-  'community-events-example':()=>{ const d=TPL_community_events(); d.cards=mkCards(d.stages,EXAMPLES['community-events']); d.title=TPL_NAME['community-events']+' — worked example'; return d; },
-  'change-makers-example':()=>{ const d=TPL_change_makers(); d.cards=mkCards(d.stages,EXAMPLES['change-makers']); d.title=TPL_NAME['change-makers']+' — worked example'; return d; },
-  'corporate-sponsorship-example':()=>{ const d=TPL_corporate(); d.cards=mkCards(d.stages,EXAMPLES['corporate-sponsorship']); d.title=TPL_NAME['corporate-sponsorship']+' — worked example'; return d; },
+  'annual-giving-example':()=>{ const d=TPL_annual_giving(); d.cards=mkCards(d.stages,EXAMPLES['annual-giving']); tplExampleEdges(d,'annual-giving'); d.title=TPL_NAME['annual-giving']+' — worked example'; return d; },
+  'leadership-giving-example':()=>{ const d=TPL_leadership(); d.cards=mkCards(d.stages,EXAMPLES['leadership-giving']); tplExampleEdges(d,'leadership-giving'); d.title=TPL_NAME['leadership-giving']+' — worked example'; return d; },
+  'planned-giving-example':()=>{ const d=TPL_planned_giving(); d.cards=mkCards(d.stages,EXAMPLES['planned-giving']); tplExampleEdges(d,'planned-giving'); d.title=TPL_NAME['planned-giving']+' — worked example'; return d; },
+  'signature-events-example':()=>{ const d=TPL_signature_events(); d.cards=mkCards(d.stages,EXAMPLES['signature-events']); tplExampleEdges(d,'signature-events'); d.title=TPL_NAME['signature-events']+' — worked example'; return d; },
+  'community-events-example':()=>{ const d=TPL_community_events(); d.cards=mkCards(d.stages,EXAMPLES['community-events']); tplExampleEdges(d,'community-events'); d.title=TPL_NAME['community-events']+' — worked example'; return d; },
+  'change-makers-example':()=>{ const d=TPL_change_makers(); d.cards=mkCards(d.stages,EXAMPLES['change-makers']); tplExampleEdges(d,'change-makers'); d.title=TPL_NAME['change-makers']+' — worked example'; return d; },
+  'corporate-sponsorship-example':()=>{ const d=TPL_corporate(); d.cards=mkCards(d.stages,EXAMPLES['corporate-sponsorship']); tplExampleEdges(d,'corporate-sponsorship'); d.title=TPL_NAME['corporate-sponsorship']+' — worked example'; return d; },
 };
 const EXAMPLES={
   'annual-giving':[
@@ -869,6 +869,15 @@ const EXAMPLES={
     {s:5,row:'eps',title:'Next-cycle upsell (mid-year)',note:'Higher tier, multi-year, or an employee-engagement add-on.'},
   ],
 };
+
+
+const EXAMPLE_EDGES={"annual-giving": [["First hears about us", "Moved by a story — gives $75"], ["Instant welcome + thank-you", "Second ask at ~8 weeks"], ["Second ask at ~8 weeks", "Sustainer page · monthly receipt"]], "leadership-giving": [["Screen by capacity + affinity; assign a portfolio", "Qualify: interest, capacity, timing, connectors"], ["Qualify: interest, capacity, timing, connectors", "Engagement plan: ~3 touchpoints/year, zero asks"], ["Engagement plan: ~3 touchpoints/year, zero asks", "Site visit · lunch with ED · tailored updates"]], "planned-giving": [["Mention legacies naturally", "“Many donors include us in their will”"], ["“Many donors include us in their will”", "Sample will language + advisor partnership"], ["Sample will language + advisor partnership", "Intro to the planned-giving officer"]], "signature-events": [["Host committee asks 5 each", "Auto email series post-purchase"], ["On-site ask + QR giving", "48-hour thank-you with impact"], ["48-hour thank-you with impact", "Thank-you + photo recap"]], "community-events": [["Waiver + reminder sequence", "A quiet ask moment"], ["A quiet ask moment", "48-hour follow-up with a specific ask"], ["48-hour follow-up with a specific ask", "Email with photos + one clear next step"]], "change-makers": [["60-minute coached setup", "Weekly coaching: ask scripts, milestones"], ["Weekly coaching: ask scripts, milestones", "Match announcement mid-campaign"], ["Match announcement mid-campaign", "Donation page · leaderboard · match moment"]], "corporate-sponsorship": [["Approach via board or partner", "Match the ask to THEIR goals"], ["Match the ask to THEIR goals", "Partnership one-pager · benefit menu"], ["Partnership one-pager · benefit menu", "Tiered packages"]]};
+function tplExampleEdges(d,key){
+  // link the example's most obvious flow: relationship-arc + calendar-feeding moments
+  const byT=new Map(d.cards.map(c=>[c.title,c.id]));
+  const ps=EXAMPLE_EDGES[key]||[];
+  d.edges=ps.map(p=>{ const f=byT.get(p[0]),t=byT.get(p[1]); return (f&&t)?{from:f,to:t}:null; }).filter(Boolean);
+}
 
 const TPL_ALIAS={'annual':'annual-giving','sustainer':'annual-giving','major':'leadership-giving'};
 const TPL_ORDER=['annual-giving','leadership-giving','planned-giving','signature-events','community-events','change-makers','corporate-sponsorship'];
@@ -1696,7 +1705,7 @@ function onKey(e){
 }
 function applyTemplate(key){
   const doc=TEMPLATES[key]();
-  doc.edges=[];
+  doc.edges=doc.edges||[];
   doc._tpl=key.replace(/-example$/,'');   // template origin (drives the Frame ⇄ Example toggle)
   doc._ex=key.endsWith('-example')?true:false;
   const id=addMapEntry(doc);
