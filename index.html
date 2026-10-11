@@ -85,6 +85,11 @@
     background:var(--paper);border-bottom:1px solid var(--line);z-index:50;
   }
   .rowbar .lbl{font-size:12px;font-weight:600;color:var(--muted);margin-right:2px;letter-spacing:.02em}
+  .rowbar .lbl.saved{color:var(--accent-2)}
+  .starthint{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:6;background:#fff;border:1px solid var(--line-strong);border-radius:12px;box-shadow:var(--shadow-m);padding:10px 14px;font-size:13px;color:#4d4638;display:flex;align-items:center;gap:12px;max-width:620px;line-height:1.45}
+  .starthint button{flex:0 0 auto;padding:3px 8px;font-size:12px}
+  .toast .tb{margin-left:10px;border:none;border-radius:6px;background:rgba(255,255,255,.16);padding:3px 10px;color:#fff;font-weight:700;cursor:pointer;font-size:12px}
+  .toast .tb:hover{background:rgba(255,255,255,.28)}
   .chip{
     display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);
     border-radius:999px;padding:5px 10px;font-size:12px;font-weight:600;cursor:pointer;
@@ -295,10 +300,10 @@
     body.method-open .methodsheet{position:static;transform:none;width:100%;max-height:none;overflow:visible;display:flex;box-shadow:none;border:none}
     body.method-open .methodsheet .mhead,body.method-open .methodsheet .mfoot{position:static}
   }
-  #mapsItems .mrow,#tplItems .mrow{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid #f0eadd;cursor:pointer;border-radius:8px;width:100%;border:none;background:transparent;text-align:left;color:inherit}
-  #mapsItems .mrow:hover,#tplItems .mrow:hover{background:#f6f2e8}
+  #mapsItems .mrow,#tplItems .mrow,#moreMenu .mrow{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid #f0eadd;cursor:pointer;border-radius:8px;width:100%;border:none;background:transparent;text-align:left;color:inherit}
+  #mapsItems .mrow:hover,#tplItems .mrow:hover,#moreMenu .mrow:hover{background:#f6f2e8}
   #mapsItems .mrow.on{background:var(--accent-soft)}
-  #mapsItems .mi,#tplItems .mi{flex:1;min-width:0}
+  #mapsItems .mi,#tplItems .mi,#moreMenu .mi{flex:1;min-width:0}
   #mapsItems .mt,#tplItems .mt{font-weight:650;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#26221b}
   #mapsItems .ms,#tplItems .ms{font-size:11px;color:var(--muted);margin-top:1px}
   #mapsItems .ma{display:flex;gap:2px;opacity:0}
@@ -333,11 +338,9 @@
     <button id="btnTpl" class="btn btn-ghost">Templates <span class="icon">▾</span></button>
     <button id="btnStage" class="btn"> <span class="icon">+</span> Stage</button>
     <span class="sep"></span>
-    <button id="btnUndo" class="btn btn-ghost" title="Undo (Ctrl+Z)" disabled><span class="icon">↶</span></button>
-    <button id="btnRedo" class="btn btn-ghost" title="Redo (Ctrl+Shift+Z)" disabled><span class="icon">↷</span></button>
+    <button id="btnUndo" class="btn btn-ghost" title="Undo (Ctrl+Z)" disabled><span class="icon">↶</span> Undo</button>
+    <button id="btnRedo" class="btn btn-ghost" title="Redo (Ctrl+Shift+Z)" disabled><span class="icon">↷</span> Redo</button>
     <span class="sep"></span>
-    <button id="btnSave" class="btn btn-ghost" title="Download as JSON">Save file</button>
-    <button id="btnLoad" class="btn btn-ghost" title="Open a saved map">Load</button>
     <button id="btnExport" class="btn" title="Export the map">Export <span class="icon">▾</span></button>
     <select id="zoomSel" class="zoomsel" title="Zoom">
       <option value="fit" selected>Fit width</option>
@@ -346,8 +349,7 @@
       <option value="0.8">80%</option>
       <option value="1">100%</option>
     </select>
-    <button id="btnMethod" class="btn btn-ghost" title="Why this approach — the method &amp; sources">Method</button>
-    <button id="btnHelp" class="btn btn-ghost" title="Help">?</button>
+    <button id="btnMore" class="btn btn-ghost" title="More options">More <span class="icon">▾</span></button>
   </header>
   <div class="rowbar">
     <span class="lbl">Lanes</span>
@@ -356,6 +358,7 @@
     <button id="btnAddRow" class="btn btn-ghost" style="padding:5px 10px;font-size:12px"><span class="icon">+</span> custom lane</button>
     <div class="spacer"></div>
     <span class="lbl" id="statusLbl"></span>
+    <span class="lbl saved" id="savedTag" style="display:none">✓ Saved</span>
     <span class="sep"></span>
     <span class="lbl">Show</span>
     <div class="seg" id="kindSeg">
@@ -366,6 +369,7 @@
   </div>
 
   <main id="workspace" class="workspace" tabindex="0">
+    <div id="startHint" class="starthint" style="display:none"><span>👋 <b>Welcome.</b> Your work saves automatically. Start by adding a card (<b>＋ card</b>), or pick a portfolio under <b>Templates</b>.</span><button id="hintClose" class="btn btn-ghost" title="Dismiss">✕</button></div>
     <div id="canvas" class="canvas">
       <div id="grid" class="grid">
         <svg id="edges" class="edges" aria-hidden="true"></svg>
@@ -450,6 +454,15 @@
     </div>
   </div>
 
+  <div id="moreMenu" class="backdrop" style="display:none;z-index:95;align-items:flex-start;background:transparent">
+    <div class="modal" style="width:240px;padding:8px">
+      <button id="btnSave" class="mrow" title="Your work saves automatically. Download a copy to move it to another computer."><span class="mi"><span class="mt">Download a copy…</span></span></button>
+      <button id="btnLoad" class="mrow" title="Open a saved copy"><span class="mi"><span class="mt">Open a saved copy…</span></span></button>
+      <button id="btnMethod" class="mrow" title="Why this approach — the method &amp; sources"><span class="mi"><span class="mt">How it works</span></span></button>
+      <button id="btnHelp" class="mrow" title="Help"><span class="mi"><span class="mt">Help</span></span></button>
+    </div>
+  </div>
+
   <div id="modalHelp" class="backdrop" style="display:none">
     <div class="modal">
       <h3>Using JourneyMap</h3>
@@ -489,9 +502,13 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 let _u=1; const uid=()=>'c'+(Date.now().toString(36))+(''+_u++);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const edgesSvg=document.getElementById('edges');   // connector layer — lives INSIDE #grid so it zooms with the cards
-let toastT=null;
-function toast(msg,ms=2200){
-  const t=$('#toast'); t.textContent=msg; t.classList.add('show');
+let toastT=null; let savedT=null;
+function toast(msg,ms=2200,opt){
+  const t=$('#toast'); t.innerHTML='';
+  const sp=document.createElement('span'); sp.textContent=msg; t.appendChild(sp);
+  if(opt&&opt.label){ const b=document.createElement('button'); b.className='tb'; b.textContent=opt.label;
+    b.addEventListener('click',()=>{ clearTimeout(toastT); t.classList.remove('show'); opt.fn&&opt.fn(); }); t.appendChild(b); }
+  t.classList.add('show');
   clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),ms);
 }
 
@@ -920,6 +937,8 @@ function writeCurrentMap(){
   const e=libEntry(state.lib.current);
   if(e){ e.doc=state.doc; e.updatedAt=Date.now(); }
   saveLibSoon();
+  const st=$('#savedTag');
+  if(st){ st.style.display='inline'; clearTimeout(savedT); savedT=setTimeout(()=>{ st.style.display='none'; },1600); }
 }
 function loadSaved(){ try{ const raw=localStorage.getItem(LSKEY); if(raw){ const d=JSON.parse(raw); if(d&&Array.isArray(d.stages)) return d; } }catch(e){} return null; }  // legacy, migration only
 
@@ -946,6 +965,8 @@ function openMap(id){
 }
 function deleteMap(id){
   $('#mapsMenu').style.display='none';
+  const e=libEntry(id);
+  if(!confirm('Delete the map '+(e&&e.doc&&e.doc.title?('“'+e.doc.title+'”'):'')+'? This cannot be undone.')) return;
   state.lib.maps=state.lib.maps.filter(m=>m.id!==id); saveLibNow();
   if(state.lib.current===id){
     state.lib.current=state.lib.maps.length?state.lib.maps[0].id:null;
@@ -955,7 +976,7 @@ function deleteMap(id){
   }
   saveLibSoon();
 }
-function showEmptyState(){ $('#empty').style.display=''; document.body.classList.add('premap'); $('#mapTitle').value=''; document.title='JourneyMap — Donor Journey Mapping'; }
+function showEmptyState(){ $('#empty').style.display=''; document.body.classList.add('premap'); $('#mapTitle').value=''; document.title='JourneyMap — Donor Journey Mapping'; syncStartHint(); }
 function applyDoc(doc,push=true){
   ensureRows(doc);
   state.doc=doc;
@@ -978,11 +999,13 @@ function addStage(name){
 }
 function deleteStage(idx){
   const st=state.doc.stages[idx]; if(!st) return;
+  if(!confirm('Delete this stage ('+st.name+') and its cards? You can undo.')) return;
   state.doc.stages.splice(idx,1);
   state.doc.cards=state.doc.cards.filter(c=>c.stage!==st.id);
   state.doc.edges=state.doc.edges.filter(e=>e.from!==st.id&&e.to!==st.id);
   if(state.sel&&state.sel.type==='stage') state.sel=null;
   commit();
+  toast('Stage deleted',2800,{label:'Undo',fn:doUndo});
 }
 function deleteCard(id){
   state.doc.cards=state.doc.cards.filter(c=>c.id!==id);
@@ -990,6 +1013,7 @@ function deleteCard(id){
   if(state.sel&&state.sel.id===id) state.sel=null;
   state.edgeFrom=null;
   commit();
+  toast('Card deleted',2800,{label:'Undo',fn:doUndo});
 }
 function syncOrderFromDOM(){
   const ids=$$('.card').map(el=>el.dataset.id);
@@ -999,7 +1023,7 @@ function syncOrderFromDOM(){
 function updateStatus(){
   const n=state.doc?state.doc.stages.length:0, c=state.doc?state.doc.cards.length:0;
   const i=state.doc?state.doc.cards.filter(x=>x.kind==='idea').length:0;
-  $('#statusLbl').textContent=n+' stages · '+c+' cards'+(i?' · '+i+' idea'+((i>1)?'s':''):'');
+  $('#statusLbl').textContent=n+' stage'+((n===1)?'':'s')+' · '+c+' card'+((c===1)?'':'s')+(i?' · '+i+' idea'+((i>1)?'s':''):'');
 }
 function applyZoom(){
   const g=$('#grid'); if(!g) return;
@@ -1058,6 +1082,12 @@ function renderAll(){
   updateStatus();
   applyZoom();
   scheduleEdges();
+  syncStartHint();
+}
+function syncStartHint(){
+  const h=$('#startHint'); if(!h) return;
+  const show=!!(state.doc&&state.doc.cards.length===0&&!state.hintDismissed&&$('#empty').style.display==='none');
+  h.style.display=show?'flex':'none';
 }
 function stageHead(st,idx,stripHtml){
   const h=document.createElement('div'); h.className='colhead'; h.dataset.sid=st.id;
@@ -1381,6 +1411,7 @@ function initEvents(){
     $('#tplMenu').style.display='none';
     $('#mapsMenu').style.display='none';
     $('#exportMenu').style.display='none';
+    $('#moreMenu').style.display='none';
     if(!e.target.closest('.colhead')&&!e.target.closest('.card')&&!e.target.closest('.tpl')&&state.connectMode){ setConnect(false); }
   });
 
@@ -1401,7 +1432,9 @@ function initEvents(){
   $('#btnSave').addEventListener('click',saveJSON);
   $('#btnLoad').addEventListener('click',()=>$('#fileInput').click());
   $('#fileInput').addEventListener('change',loadJSONFile);
-  $('#btnExport').addEventListener('click',e=>{ e.stopPropagation(); $('#exportMenu').style.display='flex'; placeMenu($('#exportMenu'),$('#btnExport')); });
+  $('#btnExport').addEventListener('click',e=>{ e.stopPropagation(); $('#moreMenu').style.display='none'; $('#exportMenu').style.display='flex'; placeMenu($('#exportMenu'),$('#btnExport')); });
+  $('#btnMore').addEventListener('click',e=>{ e.stopPropagation(); $('#mapsMenu').style.display='none'; $('#tplMenu').style.display='none'; $('#exportMenu').style.display='none'; $('#moreMenu').style.display='flex'; placeMenu($('#moreMenu'),$('#btnMore')); });
+  $('#moreMenu').addEventListener('click',()=>{ $('#moreMenu').style.display='none'; });
   $('#exportMenu').addEventListener('click',e=>{
     const o=e.target.closest('[data-fmt]');
     if(o){ $('#exportMenu').style.display='none'; if(o.dataset.fmt==='png') exportPNG(); else window.print(); return; }
@@ -1414,9 +1447,11 @@ function initEvents(){
     const has=!!state.doc;
     $('#startClose').style.display=has?'block':'none';
     $('#empty').style.display='';
+    syncStartHint();
     if(!has) document.body.classList.add('premap');
   });
-  $('#startClose').addEventListener('click',()=>{ $('#empty').style.display='none'; });
+  $('#startClose').addEventListener('click',()=>{ $('#empty').style.display='none'; syncStartHint(); });
+  $('#hintClose').addEventListener('click',()=>{ state.hintDismissed=true; syncStartHint(); });
   $('#btnMethod').addEventListener('click',toggleMethod);
   $('#methodClose').addEventListener('click',closeMethod);
   $('#methodPrint').addEventListener('click',()=>{ document.body.classList.add('method-open'); setTimeout(()=>window.print(),80); });
@@ -1425,10 +1460,10 @@ function initEvents(){
   $('#helpClose').addEventListener('click',()=>$('#modalHelp').style.display='none');
   $('#modalHelp').addEventListener('click',e=>{ if(e.target.id==='modalHelp') $('#modalHelp').style.display='none'; });
 
-  $('#btnMaps').addEventListener('click',e=>{ e.stopPropagation(); $('#tplMenu').style.display='none'; updateMapsMenu(); $('#mapsMenu').style.display='flex'; placeMenu($('#mapsMenu'),$('#btnMaps')); });
+  $('#btnMaps').addEventListener('click',e=>{ e.stopPropagation(); $('#tplMenu').style.display='none'; $('#moreMenu').style.display='none'; updateMapsMenu(); $('#mapsMenu').style.display='flex'; placeMenu($('#mapsMenu'),$('#btnMaps')); });
   $('#mapsMenu').addEventListener('click',e=>{ if(e.target===e.currentTarget) $('#mapsMenu').style.display='none'; });
   $('#mapsNewBlank').addEventListener('click',()=>{ $('#mapsMenu').style.display='none'; applyTemplate('blank'); });
-  $('#btnTpl').addEventListener('click',e=>{ e.stopPropagation(); $('#mapsMenu').style.display='none'; $('#tplMenu').style.display='flex'; placeMenu($('#tplMenu'),$('#btnTpl')); });
+  $('#btnTpl').addEventListener('click',e=>{ e.stopPropagation(); $('#mapsMenu').style.display='none'; $('#moreMenu').style.display='none'; $('#tplMenu').style.display='flex'; placeMenu($('#tplMenu'),$('#btnTpl')); });
   $('#tplMenu').addEventListener('click',e=>{
     if(e.target.id==='tplClear'){
       $('#tplMenu').style.display='none';
