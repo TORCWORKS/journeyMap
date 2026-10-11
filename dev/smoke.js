@@ -22,6 +22,18 @@ function check(name, ok, detail) {
   const cards = () => page.evaluate(() => document.querySelectorAll('.card').length);
   const edges = () => page.evaluate(() => document.querySelectorAll('#edges > path').length);
 
+  await page.goto(URL);
+  await page.waitForTimeout(500);
+  await page.evaluate(() => localStorage.clear());
+  await page.reload(); await page.waitForTimeout(700);
+  const tileN = await page.evaluate(() => document.querySelectorAll('#tplGrid .tpl').length);
+  check('landing shows 6 portfolio tiles', tileN === 6, 'tiles=' + tileN);
+  const blankBtn = await page.evaluate(() => !!document.getElementById('blankJourney'));
+  check('blank journey button on the label row', blankBtn);
+  const icN = await page.evaluate(() => document.querySelectorAll('#tplGrid .tpl .t-ic').length);
+  check('landing tile icons inline', icN === 6, 'icons=' + icN);
+  const blankOk = await page.evaluate(() => { const b = document.getElementById('blankJourney'); b.click(); return !!state.doc && state.doc.cards.length === 0; });
+  check('blank button starts an empty map', blankOk);
   await page.goto(URL + '#annual');
   await page.waitForTimeout(700);
   const s0 = await heads(), c0 = await cards();
@@ -162,7 +174,7 @@ function check(name, ok, detail) {
   check('start closes back to the current map', (await page.evaluate(() => document.getElementById('empty').style.display === 'none')) && (await page.evaluate(() => document.querySelectorAll('.colhead').length)) >= 1);
   check('no console/page errors (after library)', errors.length === 0, errors.join(' | ') || 'clean');
 
-  console.log(`\n${35 - failed}/35 smoke checks passed`);
+  console.log(`\n${39 - failed}/39 smoke checks passed`);
   await browser.close();
   process.exit(failed ? 1 : 0);
 })().catch(e => { console.error('FATAL', e); process.exit(1); });
