@@ -29,6 +29,7 @@ function check(name, ok, detail) {
   const fresh = await page.evaluate(() => ({ doc: !!state.doc, title: state.doc ? state.doc.title : null, landing: document.getElementById('empty').style.display !== 'none', hint: document.getElementById('startHint').style.display === 'flex' }));
   check('new users default to a blank journey', fresh.doc && fresh.title === 'Untitled donor journey' && !fresh.landing, JSON.stringify(fresh));
   check('Torc Works footer present', (await page.evaluate(() => document.querySelector('.appfoot').textContent.includes('TORC WORKS'))));
+  check('version stamp is set', (await page.evaluate(() => document.getElementById('verStamp').textContent)) === 'v0.1.14-alpha');
   check('first-run hint shows on the empty blank map', fresh.hint);
   await page.click('#brandHome'); await page.waitForTimeout(250);
   const tileN = await page.evaluate(() => document.querySelectorAll('#tplGrid .tpl').length);
@@ -56,6 +57,20 @@ function check(name, ok, detail) {
 
   await page.click('#btnUndo'); await page.waitForTimeout(100);
   check('undo restores stage', (await heads()) === s0 + 1);
+
+  // D-021: drag a stage column to reorder it (must keep all cards)
+  const stBefore = await page.evaluate(() => state.doc.stages.map(x => x.name));
+  const cardsBefore = await cards();
+  const fc = await page.locator('.colhead').first().boundingBox();
+  const lc = await page.locator('.colhead').last().boundingBox();
+  await page.mouse.move(fc.x + 14, fc.y + fc.height / 2);   // grab the number badge, not the name input
+  await page.mouse.down();
+  await page.mouse.move(fc.x + 60, fc.y + fc.height / 2, { steps: 6 });
+  await page.mouse.move(lc.x + lc.width / 2 + 20, lc.y + lc.height / 2, { steps: 16 });
+  await page.mouse.up(); await page.waitForTimeout(250);
+  const stAfter = await page.evaluate(() => state.doc.stages.map(x => x.name));
+  check('drag reorders stage columns', JSON.stringify(stBefore) !== JSON.stringify(stAfter) && stAfter[stAfter.length - 1] === stBefore[0], `${stBefore[0]} → ${stAfter[stAfter.length - 1]}`);
+  check('reordering keeps every card', (await cards()) === cardsBefore);
 
   await page.keyboard.press('c');   // connect mode via C (toolbar button removed)
   const a = await page.locator('.card').nth(0).boundingBox();
@@ -182,7 +197,7 @@ function check(name, ok, detail) {
   check('start closes back to the current map', (await page.evaluate(() => document.getElementById('empty').style.display === 'none')) && (await page.evaluate(() => document.querySelectorAll('.colhead').length)) >= 1);
   check('no console/page errors (after library)', errors.length === 0, errors.join(' | ') || 'clean');
 
-  console.log(`\n${42 - failed}/42 smoke checks passed`);
+  console.log(`\n${45 - failed}/45 smoke checks passed`);
   await browser.close();
   process.exit(failed ? 1 : 0);
 })().catch(e => { console.error('FATAL', e); process.exit(1); });

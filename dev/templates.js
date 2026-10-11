@@ -77,7 +77,9 @@ function check(name, ok, detail) {
 
   // old-doc migration: a v0.1.0 map (no rows) must load with the 4 default lanes
   await page.evaluate(() => {
-    localStorage.removeItem('djm.lib.v1');   // migration only fires when NO library exists yet
+    clearTimeout(saveT);                     // cancel any pending autosave first (D-021 flushes on unload)
+    state.lib={maps:[],current:null};        // empty the in-memory library so the unload flush has nothing to write
+    localStorage.removeItem('djm.lib.v1');   // migration fires when the library is missing or empty
     localStorage.removeItem('djm.doc.v1');
     const old = { app: 'journeymap', v: 1, doc: { title: 'Legacy map', stages: [{ id: 's1', name: 'Awareness' }],
       cards: [{ id: 'c1', stage: 's1', row: 'exp', title: 'T', note: 'N' }], edges: [] } };
