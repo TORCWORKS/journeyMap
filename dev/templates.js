@@ -60,9 +60,10 @@ function check(name, ok, detail) {
     if (key === 'blank') continue;
     await page.evaluate((kk) => applyTemplate(kk + '-example'), key);
     await page.waitForTimeout(200);
-    ex[key] = await page.evaluate(() => ({ cards: state.doc.cards.length, title: state.doc.title, hasIdea: state.doc.cards.some(c => c.kind === 'idea') }));
+    ex[key] = await page.evaluate(() => ({ cards: state.doc.cards.length, title: state.doc.title, hasIdea: state.doc.cards.some(c => c.kind === 'idea'), edges: state.doc.edges.length, edgesOk: state.doc.edges.every(e => state.doc.cards.some(c => c.id === e.from) && state.doc.cards.some(c => c.id === e.to)) }));
   }
   check('worked examples: every template keeps its full map + ideas', Object.values(ex).every(v => v.cards > 20 && v.hasIdea) && ex['annual-giving'].cards === 33, JSON.stringify(ex).slice(0, 120));
+  check('worked examples: 2-3 starter links showcase the flow arrows', Object.values(ex).every(v => v.edges >= 2 && v.edges <= 3 && v.edgesOk), JSON.stringify(Object.fromEntries(Object.entries(ex).map(([k,v])=>[k,v.edges]))));
   check('worked example titles are labelled', ex['annual-giving'].title.includes('worked example'), ex['annual-giving'].title);
 
   // lane lifecycle on a 5-lane template
@@ -104,7 +105,7 @@ function check(name, ok, detail) {
 
   check('no console/page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 
-  const total = Object.keys(EXPECT).length * 5 + 7 + 1 + 1 + 2;   // +2 worked-example checks
+  const total = Object.keys(EXPECT).length * 5 + 7 + 1 + 1 + 4;   // +2 worked-example checks + example-links check
   console.log(`\n${total - failed}/${total} template checks passed`);
   await browser.close();
   process.exit(failed ? 1 : 0);

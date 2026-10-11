@@ -50,8 +50,8 @@ function check(name, ok, detail) {
   const tgOn = await page.evaluate(() => document.getElementById('tplToggle').style.display === 'flex');
   check('template toggle visible on a template map', tgOn);
   await page.click('#tplToggle [data-v="ex"]'); await page.waitForTimeout(350);
-  const exM = await page.evaluate(() => ({ title: state.doc.title, cards: state.doc.cards.length, ex: !!state.doc._ex }));
-  check('toggle opens the worked example', exM.title.includes('worked example') && exM.cards === 33 && exM.ex, JSON.stringify(exM));
+  const exM = await page.evaluate(() => ({ title: state.doc.title, cards: state.doc.cards.length, ex: !!state.doc._ex, edges: state.doc.edges.length }));
+  check('toggle opens the worked example', exM.title.includes('worked example') && exM.cards === 33 && exM.ex && exM.edges >= 2, JSON.stringify(exM));
   await page.click('#tplToggle [data-v="frame"]'); await page.waitForTimeout(350);
   const frM = await page.evaluate(() => ({ title: state.doc.title, cards: state.doc.cards.length, ex: !!state.doc._ex }));
   check('toggle returns to the (zero-card) frame', frM.cards === 0 && !frM.ex && frM.title.includes('donor journey'), JSON.stringify(frM));
