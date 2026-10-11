@@ -28,6 +28,7 @@ function check(name, ok, detail) {
   await page.reload(); await page.waitForTimeout(700);
   const fresh = await page.evaluate(() => ({ doc: !!state.doc, title: state.doc ? state.doc.title : null, landing: document.getElementById('empty').style.display !== 'none', hint: document.getElementById('startHint').style.display === 'flex' }));
   check('new users default to a blank journey', fresh.doc && fresh.title === 'Untitled donor journey' && !fresh.landing, JSON.stringify(fresh));
+  check('Torc Works footer present', (await page.evaluate(() => document.querySelector('.appfoot').textContent.includes('TORC WORKS'))));
   check('first-run hint shows on the empty blank map', fresh.hint);
   await page.click('#brandHome'); await page.waitForTimeout(250);
   const tileN = await page.evaluate(() => document.querySelectorAll('#tplGrid .tpl').length);
@@ -181,7 +182,7 @@ function check(name, ok, detail) {
   check('start closes back to the current map', (await page.evaluate(() => document.getElementById('empty').style.display === 'none')) && (await page.evaluate(() => document.querySelectorAll('.colhead').length)) >= 1);
   check('no console/page errors (after library)', errors.length === 0, errors.join(' | ') || 'clean');
 
-  console.log(`\n${41 - failed}/41 smoke checks passed`);
+  console.log(`\n${42 - failed}/42 smoke checks passed`);
   await browser.close();
   process.exit(failed ? 1 : 0);
 })().catch(e => { console.error('FATAL', e); process.exit(1); });
