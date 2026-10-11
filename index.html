@@ -899,9 +899,9 @@ function writeCurrentMap(){
 function loadSaved(){ try{ const raw=localStorage.getItem(LSKEY); if(raw){ const d=JSON.parse(raw); if(d&&Array.isArray(d.stages)) return d; } }catch(e){} return null; }  // legacy, migration only
 
 /* ================= document ops ================= */
-function commit(render=true){
+function commit(){
   pushHist(false);
-  if(render) renderAll();
+  renderAll();
   scheduleEdges();
   saveSoon();
 }
@@ -1001,6 +1001,12 @@ function renderAll(){
   state.doc.stages.forEach(st=>{ const sh=stageStripHTML(st.id); if(sh) strips[st.id]=sh; });
   state.doc.stages.forEach((st,idx)=>{ g.appendChild(stageHead(st,idx,strips[st.id]||'')); });
   g.appendChild(colAddEl());
+  const byCell=new Map();
+  state.doc.cards.forEach(c=>{
+    if(!kindVisible(c)) return;
+    const k=c.stage+'|'+c.row, a=byCell.get(k)||[];
+    a.push(c); byCell.set(k,a);
+  });
   ensureRows(state.doc).filter(r=>r.visible).forEach(row=>{
     // lane header: name on top, guiding question underneath — spans the full journey width
     const band=document.createElement('div'); band.className='lanehead'; band.style.gridColumn='1 / -1';
@@ -1012,7 +1018,7 @@ function renderAll(){
       const cell=document.createElement('div');
       cell.className='cell'; cell.dataset.stage=st.id; cell.dataset.row=row.id;
       cell.style.setProperty('--grow-color',row.v);
-      const cards=state.doc.cards.filter(c=>c.stage===st.id&&c.row===row.id&&kindVisible(c));
+      const cards=byCell.get(st.id+'|'+row.id)||[];
       cards.forEach(c=>cell.appendChild(cardEl(c,row)));
       const ag=document.createElement('div'); ag.className='addghost'; ag.textContent='+ card';
       ag.addEventListener('click',ev=>{ ev.stopPropagation(); openEditor(null,{stage:st.id,row:row.id},ag); });
@@ -1076,7 +1082,7 @@ function rebuildElinks(cardId){
     row.innerHTML='<span class="arr">'+(out?'⟶':'⟵')+'</span><b>'+esc(other?other.title:'?')+'</b><span class="rem" title="Remove this link">×</span>';
     row.querySelector('.rem').addEventListener('click',()=>{
       state.doc.edges=state.doc.edges.filter(x=>!(x.from===ed.from&&x.to===ed.to));
-      commit(true);
+      commit();
       rebuildElinks(cardId);
     });
     box.appendChild(row);
@@ -1145,10 +1151,12 @@ function renderEdges(){
   const zr=(grid.offsetWidth?gb.width/grid.offsetWidth:1)||1;
   const box=el=>{ const r=el.getBoundingClientRect();
     return {x:(r.left-gb.left)/zr, y:(r.top-gb.top)/zr, w:r.width/zr, h:r.height/zr}; };
-  const rowOf=id=>{ const c=state.doc.cards.find(x=>x.id===id); return (c?getRow(c.row):getRow('gap')).hex||'#999'; };
+  const byId=new Map(); (state.doc.cards||[]).forEach(c=>byId.set(c.id,c));
+  const byEl=new Map(); $$('.card').forEach(el=>byEl.set(el.dataset.id,el));
+  const rowOf=id=>{ const c=byId.get(id); return (c?getRow(c.row):getRow('gap')).hex||'#999'; };
   let h=edgeDefs('arw');
   edges.forEach(ed=>{
-    const aEl=$('.card[data-id="'+ed.from+'"]'), bEl=$('.card[data-id="'+ed.to+'"]');
+    const aEl=byEl.get(ed.from), bEl=byEl.get(ed.to);
     if(!aEl||!bEl) return;
     const hex=rowOf(ed.from);
     h+=edgeMarkup(edgeGeometry(box(aEl),box(bEl)),hex,'arw');
@@ -1189,10 +1197,14 @@ function onDragMove(e){
   d.el.style.left=((e.clientX-d.offX)/d.z)+'px';
   d.el.style.top=((e.clientY-d.offY)/d.z)+'px';
   scheduleEdges();                      // connectors follow the card live while dragging
-  $$('.cell').forEach(c=>c.classList.remove('dragover'));
   const t=document.elementFromPoint(e.clientX,e.clientY);
   const cell=t&&t.closest('.cell');
-  if(cell&&cell!==d.srcCell) cell.classList.add('dragover');
+  const tgt=(cell&&cell!==d.srcCell)?cell:null;
+  if(tgt!==d.lastHover){
+    if(d.lastHover) d.lastHover.classList.remove('dragover');
+    if(tgt) tgt.classList.add('dragover');
+    d.lastHover=tgt||null;
+  }
 }
 function onDragUp(e){
   const d=state.drag; if(!d) return;
@@ -1210,7 +1222,7 @@ function onDragUp(e){
     }
   }
   if(d.ph){ d.ph.remove(); }
-  $$('.cell').forEach(c=>c.classList.remove('dragover'));
+  if(d.lastHover){ d.lastHover.classList.remove('dragover'); }
   // only a real drag changes the document — a plain click must not re-render
   // (it would destroy the card element before the browser delivers the click)
   if(d.started){ syncOrderFromDOM(); commit(); }
@@ -1533,7 +1545,6 @@ function loadJSONFile(e){
 }
 
 /* ================= PNG export ================= */
-function wrapCount(text,maxW,fs){ const cpl=Math.max(8,Math.floor(maxW/(fs*0.53))); let lines=1,n=0; for(const w of String(text).split(/\s+/)){ if(w.length>0&&n+w.length+ (n?1:0)>cpl){ lines++; n=w.length; } else n+=w.length+(n?1:0); } return lines; }
 function wrapLines(text,maxW,fs,maxLines){
   const cpl=Math.max(8,Math.floor(maxW/(fs*0.53)));
   const words=String(text).split(/\s+/); const out=[]; let cur='';
