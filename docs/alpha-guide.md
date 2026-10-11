@@ -5,7 +5,7 @@
 from disk). Donor data never leaves your computer; nothing is uploaded.
 
 **Session one (≈10 minutes)**
-1. **Templates ▾ → Annual giving** — a **starting frame**: the stages and lanes pre-set with a handful of example cards. It's deliberately NOT full — fill it with your reality. (The **✨** button on a template row loads the full worked example for inspiration.)
+1. **Templates ▾ → Annual giving** — a **starting frame**: stages and lanes pre-set, **zero cards** — every lane asks you a question, and the editor shows it as you write. That emptiness is the point: fill it with your reality. Flip **Frame ⇄ Worked example** (lane-chips row) or use the **✨** button to see one fully-written version for inspiration.
 2. **Rename the stages** to your own words — click a stage title and type.
 3. **Edit a card** — click any card: change the title/note, mark it **💡 Idea**, set a metric.
 4. **Drag a stage column** to reorder it; **drag a card** between cells; press **C**, click card → card, to draw a flow arrow.

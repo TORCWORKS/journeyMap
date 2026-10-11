@@ -17,7 +17,12 @@ function check(name, ok, detail) { CHECKS.push({ name, ok, detail }); }
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 
   await page.goto(URL + '#annual');
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(500);
+  await page.evaluate(() => { localStorage.clear(); });
+  await page.reload(); await page.waitForTimeout(600);
+  // frames are zero-card — use the worked example for geometry testing
+  await page.evaluate(() => applyTemplate('annual-giving-example'));
+  await page.waitForTimeout(600);
 
   // connect the first two cards (adjacent stages, same lane)
   await page.keyboard.press('c');
