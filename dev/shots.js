@@ -24,7 +24,8 @@ const APP = path.join(__dirname, '..', 'index.html');
   await p.goto('file://' + APP + '#annual');
   await p.waitForTimeout(1200);
   const dlP = p.waitForEvent('download', { timeout: 10000 }).catch(() => null);
-  await p.click('#btnPng');
+  await p.click('#btnExport'); await p.waitForTimeout(150);
+  await p.click('#exportMenu [data-fmt="png"]');
   const dl = await dlP;
   if (dl) { fs.copyFileSync(await dl.path(), '/tmp/jm2-export.png'); console.log('exported artifact → /tmp/jm2-export.png'); }
   else console.log('EXPORT FAILED');
