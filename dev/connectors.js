@@ -28,6 +28,7 @@ function check(name, ok, detail) { CHECKS.push({ name, ok, detail }); }
   await page.mouse.click(b.x + b.width / 2, b.y + b.height / 2);
   await page.waitForTimeout(200);
   await page.keyboard.press('Escape');
+  await page.waitForTimeout(400);   // let the card entrance animation + settle re-draw finish
 
   async function measure(label) {
     const m = await page.evaluate(() => {

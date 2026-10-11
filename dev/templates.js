@@ -7,13 +7,13 @@ const CHROME = process.env.CHROME || '/home/pi-agent/.cache/ms-playwright/chromi
 const URL = 'file://' + path.join(__dirname, '..', 'index.html');
 
 const EXPECT = {
-  'annual-giving':     { stages: 6, cards: 33, eps: true  },
-  'change-makers':     { stages: 6, cards: 29, eps: true  },
-  'signature-events':  { stages: 6, cards: 30, eps: true  },
-  'community-events':  { stages: 5, cards: 26, eps: true  },
-  'planned-giving':    { stages: 6, cards: 30, eps: true  },
-  'corporate-sponsorship': { stages: 6, cards: 30, eps: true  },
-  'leadership-giving': { stages: 6, cards: 30, eps: true  },
+  'annual-giving':     { stages: 6, cards: 13, eps: true  },
+  'change-makers':     { stages: 6, cards: 9,  eps: true  },
+  'signature-events':  { stages: 6, cards: 10, eps: true  },
+  'community-events':  { stages: 5, cards: 8,  eps: true  },
+  'planned-giving':    { stages: 6, cards: 10, eps: true  },
+  'corporate-sponsorship': { stages: 6, cards: 9,  eps: true  },
+  'leadership-giving': { stages: 6, cards: 10, eps: true  },
   'blank':             { stages: 5, cards: 0,  eps: false },
 };
 
@@ -54,6 +54,17 @@ function check(name, ok, detail) {
     check(`${k}: every lane carries a guiding question`, q.n===q.total, q.n+'/'+q.total);
   }
 
+  // worked examples: the full authored maps are still reachable one click away
+  const ex = {};
+  for (const [key] of Object.entries(EXPECT)) {
+    if (key === 'blank') continue;
+    await page.evaluate((kk) => applyTemplate(kk + '-example'), key);
+    await page.waitForTimeout(200);
+    ex[key] = await page.evaluate(() => ({ cards: state.doc.cards.length, title: state.doc.title, hasIdea: state.doc.cards.some(c => c.kind === 'idea') }));
+  }
+  check('worked examples: every template keeps its full map + ideas', Object.values(ex).every(v => v.cards > 20 && v.hasIdea) && ex['annual-giving'].cards === 33, JSON.stringify(ex).slice(0, 120));
+  check('worked example titles are labelled', ex['annual-giving'].title.includes('worked example'), ex['annual-giving'].title);
+
   // lane lifecycle on a 5-lane template
   await page.goto(URL + '#change-makers');
   await page.waitForTimeout(60);
@@ -93,7 +104,7 @@ function check(name, ok, detail) {
 
   check('no console/page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 
-  const total = Object.keys(EXPECT).length * 5 + 7 + 1 + 1;
+  const total = Object.keys(EXPECT).length * 5 + 7 + 1 + 1 + 2;   // +2 worked-example checks
   console.log(`\n${total - failed}/${total} template checks passed`);
   await browser.close();
   process.exit(failed ? 1 : 0);
