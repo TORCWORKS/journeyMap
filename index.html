@@ -200,6 +200,12 @@
   .editor .kbtn:hover{border-color:var(--line-strong)}
   .editor .kbtn.on{background:var(--accent-soft);color:var(--accent-2);border-color:var(--accent)}
   .editor .prio{border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:12px;font-weight:600;color:#6f6859}
+  .editor .elinks{display:flex;flex-direction:column;gap:5px;border-top:1px dashed var(--line-strong);padding-top:9px}
+  .editor .el{display:flex;align-items:center;gap:7px;background:#f6f2e8;border-radius:8px;padding:5px 9px;font-size:12px;color:#4d4638}
+  .editor .el .arr{flex:0 0 auto;color:var(--muted)}
+  .editor .el b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+  .editor .el .rem{border:none;background:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:2px 4px;border-radius:5px}
+  .editor .el .rem:hover{color:var(--rose);background:#fdf0ec}
   .editor .emetric{border-top:1px dashed var(--line-strong);padding-top:10px;gap:8px;display:flex;flex-direction:column}
   .editor .mtoggle{border:1px dashed var(--line-strong);border-radius:8px;background:#fff;padding:6px 10px;font-size:12px;font-weight:600;color:#6f6859;cursor:pointer}
   .editor .mtoggle:hover{border-color:var(--accent);color:var(--accent-2)}
@@ -415,9 +421,10 @@
         <div class="mhint">Benchmark = suggested norm (auto-filled where known — confirm before presenting); leaders set the target.</div>
       </div>
     </div>
+    <div id="eLinks" class="elinks" style="display:none"></div>
+    <button id="eLink" class="btn btn-ghost" style="width:100%;padding:6px 10px;font-size:12px" title="Draw a flow arrow from this card to another">⇢ Link card</button>
     <div class="efoot">
       <button id="eDelete" class="btn btn-danger" style="padding:6px 10px;font-size:12px">Delete</button>
-      <button id="eLink" class="btn btn-ghost" style="padding:6px 10px;font-size:12px" title="Draw a flow arrow from this card to another">⇢ Link card</button>
       <span class="hint">Esc closes · drag to move</span>
     </div>
   </div>
@@ -450,7 +457,7 @@
         <li><b>Stages</b> — the columns of the journey, left to right. Rename by clicking, delete with the <span class="keys">×</span>, add stages with <span class="keys">+ Stage</span> or the dashed column at the end.</li>
         <li><b>Lanes</b> — each row is a layer: what donors <b>experience</b>, the <b>channels</b> they use, what <b>your org does</b>, and <b>gaps &amp; opportunities</b>. Toggle lanes in the bar above.</li>
         <li><b>Cards</b> — click any cell to add one; <b>click a card to edit it</b> (title, note, Current/Idea kind, priority) — or press <span class="keys">Enter</span> on a selected card; <span class="keys">⋯</span> does the same. Drag cards between cells to move them; <span class="keys">Delete</span> removes the selected card.</li>
-        <li><b>Flow arrows</b> — open a card, choose <span class="keys">⇢ Link card</span> (or press <span class="keys">C</span>), then click the card it flows to. Click a linked pair again to remove the arrow.</li>
+        <li><b>Flow arrows</b> — open a card and choose <span class="keys">⇢ Link card</span> (or press <span class="keys">C</span>), then click the card it flows to. A card's editor lists its links — tap <span class="keys">×</span> on a link to remove it (or re-click the same pair in connect mode).</li>
         <li><b>Current vs Ideas</b> — cards are <b>Current</b> (solid) or <b>💡 Idea</b> (dashed, with a low/med/high priority dot): an aspiration you'd want to introduce. Set it in the card editor; filter the map with <span class="keys">All / Current / Ideas</span>. “Ideas only” is your to-do view.</li>
         <li><b>Metrics</b> — any card can carry a number: <b>current → target (benchmark norm)</b>, e.g. “First→second gift conversion 22% → 30% (norm 35%)”. Attach one in the card editor (benchmark auto-fills as a *suggested norm* where known — confirm it before presenting). The stages that have metrics show a compact summary strip under their header.</li>
         <li><b>Why this approach?</b> — the whole method &amp; its sources (journey mapping &amp; service design, donor-centred fundraising, moves management) live on the <span class="keys">Method</span> page in the top bar; it prints or saves to PDF when you need to share it.</li>
@@ -1057,6 +1064,24 @@ function cardEl(c,row){
   el.addEventListener('pointerdown',e=>{ if(state.connectMode) return; if(e.target.closest('.cedit')) return; startDrag(e,el,c); });
   return el;
 }
+function rebuildElinks(cardId){
+  const box=$('#eLinks'); if(!box) return;
+  const edges=(state.doc.edges||[]).filter(e=>e.from===cardId||e.to===cardId);
+  box.style.display=edges.length?'flex':'none';
+  box.innerHTML='';
+  edges.forEach(ed=>{
+    const out=ed.from===cardId;
+    const other=state.doc.cards.find(c=>c.id===(out?ed.to:ed.from));
+    const row=document.createElement('div'); row.className='el';
+    row.innerHTML='<span class="arr">'+(out?'⟶':'⟵')+'</span><b>'+esc(other?other.title:'?')+'</b><span class="rem" title="Remove this link">×</span>';
+    row.querySelector('.rem').addEventListener('click',()=>{
+      state.doc.edges=state.doc.edges.filter(x=>!(x.from===ed.from&&x.to===ed.to));
+      commit(true);
+      rebuildElinks(cardId);
+    });
+    box.appendChild(row);
+  });
+}
 function refreshStageStrip(stId){
   const h=$('.colhead[data-sid="'+stId+'"]'); if(!h) return;
   const old=h.querySelector('.mstrip'); if(old) old.remove();
@@ -1232,6 +1257,7 @@ function openEditor(card,newSpec,anchor){
   $$('.kbtn').forEach(b=>b.classList.toggle('on',b.dataset.k===k0));
   $('#ePrio').style.display=(k0==='idea')?'':'none';
   $('#ePrio').value=String(pr0);
+  if(card) rebuildElinks(card.id); else { const eb=$('#eLinks'); if(eb){ eb.style.display='none'; eb.innerHTML=''; } }
   const m0=(card&&card.m)||null;
   const hasM=!!(m0&&(m0.name||m0.cur||m0.tgt||m0.bm));
   $('#eMName').value=m0?m0.name||'':'';

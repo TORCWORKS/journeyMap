@@ -115,6 +115,14 @@ function check(name, ok, detail) {
   await page.focus('#eTitle'); await page.keyboard.press('Enter'); await page.waitForTimeout(180);
   const mres = await page.evaluate(() => ({ chip: document.querySelectorAll('.cmtr').length, stored: state.doc.cards.filter(c => c.m).length, strips: document.querySelectorAll('.mstrip').length }));
   check('metric chip renders + stores (seeded + added)', mres.stored >= 4 && mres.chip === mres.stored, JSON.stringify(mres));
+  // D-012: links are removable from the card editor
+  const srcId = await page.evaluate(() => state.doc.edges[0].from);
+  await page.locator('.card[data-id="' + srcId + '"] .cedit').first().click(); await page.waitForTimeout(150);
+  check('editor lists the card\'s links', (await page.evaluate(() => document.querySelectorAll('#eLinks .el').length)) === 1, 'entries=' + (await page.evaluate(() => document.querySelectorAll('#eLinks .el').length)));
+  await page.evaluate(() => { const r = document.querySelector('#eLinks .el .rem'); if (r) r.click(); });
+  await page.waitForTimeout(200);
+  check('removing the link deletes the edge', (await page.evaluate(() => state.doc.edges.length)) === 0, 'edges=' + (await page.evaluate(() => state.doc.edges.length)));
+  await page.keyboard.press('Escape'); await page.waitForTimeout(120);
   check('stage header strips auto-derive', mres.strips >= 1, 'strips=' + mres.strips);
 
   await page.click('#btnExport'); await page.waitForTimeout(120);
@@ -154,7 +162,7 @@ function check(name, ok, detail) {
   check('start closes back to the current map', (await page.evaluate(() => document.getElementById('empty').style.display === 'none')) && (await page.evaluate(() => document.querySelectorAll('.colhead').length)) >= 1);
   check('no console/page errors (after library)', errors.length === 0, errors.join(' | ') || 'clean');
 
-  console.log(`\n${33 - failed}/33 smoke checks passed`);
+  console.log(`\n${35 - failed}/35 smoke checks passed`);
   await browser.close();
   process.exit(failed ? 1 : 0);
 })().catch(e => { console.error('FATAL', e); process.exit(1); });
