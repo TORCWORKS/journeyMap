@@ -26,6 +26,9 @@ function check(name, ok, detail) {
   await page.waitForTimeout(500);
   await page.evaluate(() => localStorage.clear());
   await page.reload(); await page.waitForTimeout(700);
+  const fresh = await page.evaluate(() => ({ doc: !!state.doc, title: state.doc ? state.doc.title : null, landing: document.getElementById('empty').style.display !== 'none' }));
+  check('new users default to a blank journey', fresh.doc && fresh.title === 'Untitled donor journey' && !fresh.landing, JSON.stringify(fresh));
+  await page.click('#brandHome'); await page.waitForTimeout(250);
   const tileN = await page.evaluate(() => document.querySelectorAll('#tplGrid .tpl').length);
   check('landing shows 6 portfolio tiles', tileN === 6, 'tiles=' + tileN);
   const blankBtn = await page.evaluate(() => !!document.getElementById('blankJourney'));
