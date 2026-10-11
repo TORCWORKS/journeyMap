@@ -98,10 +98,11 @@
   .edges{position:absolute;left:0;top:0;pointer-events:none;z-index:0;overflow:visible}
 
   .colhead{
-    display:flex;align-items:center;gap:7px;padding:8px 9px;border-radius:10px;
+    display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:8px 9px;border-radius:10px;
     background:#fff;border:1px solid var(--line);box-shadow:var(--shadow-s);
     position:sticky;top:0;z-index:4;
   }
+  .colhead .mstrip{flex:1 0 100%;order:9}
   .colhead .num{
     width:20px;height:20px;flex:0 0 20px;border-radius:7px;background:var(--ink);color:#fff;
     font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;
@@ -171,7 +172,7 @@
   .editor{
     position:fixed;z-index:120;width:280px;background:#fff;border:1px solid var(--line-strong);
     border-radius:13px;box-shadow:var(--shadow-l);padding:14px;display:flex;flex-direction:column;gap:10px;
-    animation:popin .15s ease both;
+    animation:popin .15s ease both;max-height:calc(100vh - 24px);overflow:auto;
   }
   @keyframes popin{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
   .editor .ehead{display:flex;align-items:center;gap:6px}
@@ -192,7 +193,20 @@
   .editor .kbtn:hover{border-color:var(--line-strong)}
   .editor .kbtn.on{background:var(--accent-soft);color:var(--accent-2);border-color:var(--accent)}
   .editor .prio{border:1px solid var(--line);border-radius:8px;padding:5px 8px;font-size:12px;font-weight:600;color:#6f6859}
+  .editor .emetric{border-top:1px dashed var(--line-strong);padding-top:10px;gap:8px;display:flex;flex-direction:column}
+  .editor .mtoggle{border:1px dashed var(--line-strong);border-radius:8px;background:#fff;padding:6px 10px;font-size:12px;font-weight:600;color:#6f6859;cursor:pointer}
+  .editor .mtoggle:hover{border-color:var(--accent);color:var(--accent-2)}
+  .editor #eMetricFields{display:flex;flex-direction:column;gap:7px}
+  .editor .mrow{display:flex;gap:7px}
+  .editor .mrow>div{flex:1}
+  .editor .mrow>*{min-width:0}
+  .editor #eMetricFields .mrow input,.editor #eMetricFields input[type=text]{font-size:12px;padding:6px 8px}
+  .editor .mhint{font-size:10px;color:var(--muted);line-height:1.4}
   .editor .hint{font-size:10.5px;color:var(--muted)}
+  .card .cmtr{font-size:10.5px;color:#5f5747;margin-top:5px;padding-top:5px;border-top:1px dashed #e7e0d0;line-height:1.35}
+  .card .cmtr b{color:#2a251c}
+  .colhead .mstrip{font-size:9.5px;color:#a39a86;line-height:1.3;margin-top:2px}
+  .colhead .mstrip .red{color:#c25353;font-weight:700}
   .seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff}
   .seg button{border:none;background:transparent;padding:5px 11px;font-size:12px;font-weight:600;color:#6f6859;cursor:pointer;border-right:1px solid var(--line)}
   .seg button:last-child{border-right:none}
@@ -339,6 +353,18 @@
       <label for="eNote">Note</label>
       <textarea id="eNote" spellcheck="false"></textarea>
     </div>
+    <div class="emetric">
+      <button id="eMetricToggle" class="mtoggle" type="button" title="Attach a current · benchmark · target number to this card">＋ Metric (actual vs goal)</button>
+      <div id="eMetricFields" style="display:none">
+        <input id="eMName" type="text" placeholder="Metric, e.g. First→second gift conversion" spellcheck="false">
+        <div class="mrow">
+          <div><label>Current</label><input id="eMCur" type="text" placeholder="22%" spellcheck="false"></div>
+          <div><label>Benchmark</label><input id="eMBm" type="text" placeholder="35%" spellcheck="false"></div>
+          <div><label>Target</label><input id="eMTgt" type="text" placeholder="30%" spellcheck="false"></div>
+        </div>
+        <div class="mhint">Benchmark = suggested norm (auto-filled where known — confirm before presenting); leaders set the target.</div>
+      </div>
+    </div>
     <div class="efoot">
       <button id="eDelete" class="btn btn-danger" style="padding:6px 10px;font-size:12px">Delete</button>
       <span class="hint">Esc closes · drag to move</span>
@@ -361,6 +387,7 @@
         <li><b>Cards</b> — click any cell to add one; <b>click a card to edit it</b> (title, note, Current/Idea kind, priority) — or press <span class="keys">Enter</span> on a selected card; <span class="keys">⋯</span> does the same. Drag cards between cells to move them; <span class="keys">Delete</span> removes the selected card.</li>
         <li><b>Connect mode</b> — press <span class="keys">Connect</span>, then click two cards to draw a flow line. Click again to remove it.</li>
         <li><b>Current vs Ideas</b> — cards are <b>Current</b> (solid) or <b>💡 Idea</b> (dashed, with a low/med/high priority dot): an aspiration you'd want to introduce. Set it in the card editor; filter the map with <span class="keys">All / Current / Ideas</span>. “Ideas only” is your to-do view.</li>
+        <li><b>Metrics</b> — any card can carry a number: <b>current → target (benchmark norm)</b>, e.g. “First→second gift conversion 22% → 30% (norm 35%)”. Attach one in the card editor (benchmark auto-fills as a *suggested norm* where known — confirm it before presenting). The stages that have metrics show a compact summary strip under their header.</li>
         <li><b>Undo</b> — <span class="keys">Ctrl+Z</span> / <span class="keys">Ctrl+Shift+Z</span>. Your map autosaves in this browser.</li>
         <li><b>Export</b> — <span class="keys">Export PNG</span> makes a clean image for decks; <span class="keys">PDF</span> prints the whole map. <span class="keys">Save file</span> keeps a copy to reload later.</li>
       </ul>
@@ -414,7 +441,7 @@ function getRow(id){
 }
 
 /* ================= templates ================= */
-function mkCards(stages,defs){ return defs.map(d=>({id:uid(),stage:stages[d.s].id,row:d.row,title:d.title,note:d.note})); }
+function mkCards(stages,defs){ return defs.map(d=>({id:uid(),stage:stages[d.s].id,row:d.row,title:d.title,note:d.note,m:d.m})); }
 const EPS={id:'eps',name:'Recurring episodes',q:'Which recurring asks, events, or cycles land on this stage?',v:'#8a7db5',hex:'#8a7db5'};
 const BASE4=()=>DEFAULT_ROWS.map(r=>({...r}));
 
@@ -432,11 +459,11 @@ function TPL_annual_giving(){
     {s:1,row:'gap',title:'Long silence after the first gift',note:'No second ask planned. The warmest donor we have is the one who just gave.'},
     {s:2,row:'exp',title:'Warm but passive',note:'Won\'t come back alone. Needs proof their gift did something.'},
     {s:2,row:'ch',title:'Impact update · quarterly e-news',note:'Show outcomes, not busyness. One photo of a changed life beats four paragraphs.'},
-    {s:2,row:'act',title:'Second ask at ~8 weeks',note:'With an impact story attached — ask for a repeat gift, then open the sustainer door.'},
+    {s:2,row:'act',title:'Second ask at ~8 weeks',note:'With an impact story attached — ask for a repeat gift, then open the sustainer door.',m:{name:'First→second gift conversion',cur:'22%',bm:'35%',tgt:'30%'}},
     {s:2,row:'gap',title:'Second ask rides the campaign calendar',note:'Should be automated and timed to the donor, not to our schedule.'},
     {s:3,row:'exp',title:'Wants convenience + identity',note:'Monthly giving is a habit and an identity, not an impulse.'},
     {s:3,row:'ch',title:'Sustainer page · monthly receipt',note:'Make the recurring option the obvious one at the moment of peak intent.'},
-    {s:3,row:'act',title:'Monthly impact report; upgrade ask ≈ month 9',note:'Sustainers are 3–5× lifetime value. Nurture them like the asset they are.'},
+    {s:3,row:'act',title:'Monthly impact report; upgrade ask ≈ month 9',note:'Sustainers are 3–5× lifetime value. Nurture them like the asset they are.',m:{name:'Sustainer conversion',cur:'8%',bm:'20%',tgt:'15%'}},
     {s:3,row:'gap',title:'Conversion ask not timed to intent',note:'We offer the monthly gift only in the year-end push, not at peak warmth.'},
     {s:4,row:'exp',title:'Feels valued — part of the family',note:'Recognition is fuel. These donors give more, tell friends, and defend us.'},
     {s:4,row:'ch',title:'Annual report · board thank-you call',note:'A personal call for $500+ donors changes the relationship permanently.'},
@@ -444,7 +471,7 @@ function TPL_annual_giving(){
     {s:4,row:'gap',title:'No upgrade cycle for mid-level donors',note:'The $250–$1k donor is our cheapest growth — nobody cultivates them toward major.'},
     {s:5,row:'exp',title:'Starts to drift — 9–12 months quiet',note:'Not lost, just unspoken to. The silence is ours, not theirs.'},
     {s:5,row:'ch',title:'Reactivation email',note:'One good story, one clear reason to return, no guilt.'},
-    {s:5,row:'act',title:'Lapse trigger at 12 months',note:'A watchlist, not a graveyard. Timing is everything in recovery.'},
+    {s:5,row:'act',title:'Lapse trigger at 12 months',note:'A watchlist, not a graveyard. Timing is everything in recovery.',m:{name:'Annual lapsed rate',cur:'12%',bm:'10%',tgt:'8%'}},
     {s:5,row:'gap',title:'Nothing catches drift early',note:'We find lapsed donors in the rear-view mirror. Automation should flag them sooner.'},
     {s:6,row:'exp',title:'Gone — but retrievable',note:'Lapsed donors return for big moments: campaigns, anniversaries, crises.'},
     {s:6,row:'ch',title:'Year-end appeal · events',note:'The cheapest win in fundraising is a warm name, not a cold one.'},
@@ -707,6 +734,38 @@ const state={
 };
 const KIND_PRIO={1:'High',2:'Medium',3:'Low'};
 const KIND_COLOR={1:'#d1664a',2:'#e0a93e',3:'#9db08c'};
+// soft suggested norms (benchmark-flywheel seed) — always editable; confirm before presenting
+const METRIC_NORMS=[['first','35%'],['second','35%'],['conversion','30%'],['retention','40%'],['sustain','20%'],['reactivat','12%'],['lapse','10%'],['upgrade','15%']];
+function fmtMetric(m){
+  const bits=[];
+  if(m.name) bits.push(esc(m.name));
+  if(m.cur) bits.push('<b>'+esc(m.cur)+'</b>');
+  if(m.tgt) bits.push('→ '+esc(m.tgt));
+  if(m.bm) bits.push('· norm '+esc(m.bm));
+  return bits.join(' ');
+}
+function metricOn(c){ const m=c&&c.m; return m&&(m.cur||m.tgt||m.bm)?m:null; }
+function stageMetricList(stId){
+  const seen=new Map();
+  (state.doc?state.doc.cards:[]).filter(c=>c.stage===stId&&kindVisible(c)).forEach(c=>{
+    const m=metricOn(c); if(!m||!m.name||!m.cur||!m.tgt) return;
+    if(!seen.has(m.name)) seen.set(m.name,m);
+  });
+  return [...seen.values()];
+}
+function stageStripHTML(stId){
+  return exportStripText(stId)+endingStripExtra(stId);
+}
+function exportStripText(stId){
+  return stageMetricList(stId).slice(0,2).map(m=>{
+    const short=m.name.length>13?m.name.slice(0,12)+'…':m.name;
+    return short+' '+m.cur+'→'+m.tgt+(m.bm?' (n '+m.bm+')':'');
+  }).join(' · ');
+}
+function endingStripExtra(stId){
+  const extra=stageMetricList(stId).length-2;
+  return extra>0?' · +'+extra:'';
+}
 function kindVisible(c){
   if(state.showKinds==='both') return true;
   return state.showKinds==='idea' ? c.kind==='idea' : c.kind!=='idea';
@@ -809,7 +868,9 @@ function renderAll(){
   g.style.setProperty('--ncols',(state.doc.stages.length+1));
   g.innerHTML='';
   g.appendChild(edgesSvg);                                                 // keep the connector layer as the first (bottom) child
-  state.doc.stages.forEach((st,idx)=>{ g.appendChild(stageHead(st,idx)); });
+  const strips={};
+  state.doc.stages.forEach(st=>{ const sh=stageStripHTML(st.id); if(sh) strips[st.id]=sh; });
+  state.doc.stages.forEach((st,idx)=>{ g.appendChild(stageHead(st,idx,strips[st.id]||'')); });
   g.appendChild(colAddEl());
   ensureRows(state.doc).filter(r=>r.visible).forEach(row=>{
     // lane header: name on top, guiding question underneath — spans the full journey width
@@ -838,9 +899,10 @@ function renderAll(){
   applyZoom();
   scheduleEdges();
 }
-function stageHead(st,idx){
+function stageHead(st,idx,stripHtml){
   const h=document.createElement('div'); h.className='colhead'; h.dataset.sid=st.id;
-  h.innerHTML='<span class="num">'+(idx+1)+'</span><input class="spname" value="'+esc(st.name)+'" spellcheck="false"><button class="del" title="Delete stage">×</button>';
+  h.innerHTML='<span class="num">'+(idx+1)+'</span><input class="spname" value="'+esc(st.name)+'" spellcheck="false"><button class="del" title="Delete stage">×</button>'
+    +(stripHtml?'<div class="mstrip">'+stripHtml+'</div>':'');
   const inp=h.querySelector('.spname');
   inp.addEventListener('input',()=>{ st.name=inp.value; saveSoon(); });
   inp.addEventListener('change',()=>pushHist(false));
@@ -861,7 +923,8 @@ function cardEl(c,row){
   const pd=(c.kind==='idea'&&c.p)?'<span class="pd" style="background:'+KIND_COLOR[c.p]+'" title="Priority: '+KIND_PRIO[c.p]+'"></span>':'';
   el.title=c.kind==='idea'?'Idea — '+KIND_PRIO[c.p||2]+' priority':'';
   el.innerHTML='<button class="cedit" title="Edit">⋯</button><div class="ctitle">'+cmk+esc(c.title)+pd+'</div>'
-    +(c.note?'<div class="cnote">'+esc(c.note)+'</div>':'');
+    +(c.note?'<div class="cnote">'+esc(c.note)+'</div>':'')
+    +(metricOn(c)?'<div class="cmtr" title="current → target · benchmark norm">'+fmtMetric(c.m)+'</div>':'');
   el.querySelector('.cedit').addEventListener('click',e=>{ e.stopPropagation(); openEditor(c,null,el); });
   el.addEventListener('click',()=>{
     if(state.connectMode){ handleConnectClick(c.id); return; }
@@ -871,6 +934,12 @@ function cardEl(c,row){
   el.addEventListener('dblclick',e=>{ if(!state.connectMode){ e.preventDefault(); openEditor(c,null,el); } });
   el.addEventListener('pointerdown',e=>{ if(state.connectMode) return; if(e.target.closest('.cedit')) return; startDrag(e,el,c); });
   return el;
+}
+function refreshStageStrip(stId){
+  const h=$('.colhead[data-sid="'+stId+'"]'); if(!h) return;
+  const old=h.querySelector('.mstrip'); if(old) old.remove();
+  const html=stageStripHTML(stId);
+  if(html){ const d=document.createElement('div'); d.className='mstrip'; d.innerHTML=html; h.appendChild(d); }
 }
 function selectCard(id){ deselect(); state.sel={type:'card',id}; const el=$('.card[data-id="'+id+'"]'); if(el) el.classList.add('selected'); }
 function selectStage(sid){ deselect(); state.sel={type:'stage',id:sid}; }
@@ -1042,11 +1111,21 @@ function openEditor(card,newSpec,anchor){
   $$('.kbtn').forEach(b=>b.classList.toggle('on',b.dataset.k===k0));
   $('#ePrio').style.display=(k0==='idea')?'':'none';
   $('#ePrio').value=String(pr0);
+  const m0=(card&&card.m)||null;
+  const hasM=!!(m0&&(m0.name||m0.cur||m0.tgt||m0.bm));
+  $('#eMName').value=m0?m0.name||'':'';
+  $('#eMCur').value=m0?m0.cur||'':'';
+  $('#eMBm').value=m0?m0.bm||'':'';
+  $('#eMTgt').value=m0?m0.tgt||'':'';
+  $('#eMetricFields').style.display=hasM?'flex':'none';
+  $('#eMetricToggle').textContent=hasM?'－ Metric (actual vs goal)':'＋ Metric (actual vs goal)';
   ed.style.display='flex';
   const r=(anchor&&anchor.getBoundingClientRect())||(card&&$('.card[data-id="'+card.id+'"]').getBoundingClientRect());
-  const ew=280, eh=230;
+  const ew=280, eh=ed.offsetHeight, vh=innerHeight;
   ed.style.left=clamp(r.left-24,8,innerWidth-ew-8)+'px';
-  ed.style.top=clamp(r.bottom+10,8,innerHeight-eh-8)+'px';
+  let top=clamp(r.bottom+10,8,vh-eh-8);
+  if(r.bottom+10+eh>vh&&r.top-eh-10>8) top=r.top-eh-10;   // flip above the card when below would overflow
+  ed.style.top=top+'px';
   $('#eTitle').focus(); $('#eTitle').select();
 }
 function vartorow(row){ return row.v.replace('var(','').replace(')',''); }  // rough; used only for dot color
@@ -1058,10 +1137,12 @@ function saveEditor(){
   const n=rawN.trim();
   const kb=$('.kbtn.on'); const k=kb?kb.dataset.k:'cur';
   const pr=+$('#ePrio').value||2;
+  const mName=$('#eMName').value.trim(), mCur=$('#eMCur').value.trim(), mBm=$('#eMBm').value.trim(), mTgt=$('#eMTgt').value.trim();
+  const m=(mName||mCur||mTgt||mBm)?{name:mName,cur:mCur,bm:mBm,tgt:mTgt}:undefined;
   if(editing.new){
     // untouched editor (nothing typed, nothing pasted) → close without creating a junk card
     if(rawT===editing.b0.t && rawN===editing.b0.n && !rawT.trim() && !rawN.trim()){ editing=null; closeEditor(); return; }
-    const card={id:uid(),stage:editing.stage,row:editing.row,title:t,note:n,kind:k,p:(k==='idea'?pr:undefined)};
+    const card={id:uid(),stage:editing.stage,row:editing.row,title:t,note:n,kind:k,p:(k==='idea'?pr:undefined),m:m};
     state.doc.cards.push(card);
     const cell2=$('.cell[data-stage="'+card.stage+'"][data-row="'+card.row+'"]');
     editing=null; closeEditor();
@@ -1080,7 +1161,7 @@ function saveEditor(){
     // targeted update only — never re-render here, or an in-progress drag on this
     // card would be destroyed by the mousedown that commits the editor
     const c=editing.card; c.title=t; c.note=n;
-    c.kind=k; c.p=(k==='idea'?pr:undefined);
+    c.kind=k; c.p=(k==='idea'?pr:undefined); c.m=m;
     const el=$('.card[data-id="'+c.id+'"]');
     if(el){
       el.classList.toggle('idea',k==='idea');
@@ -1091,6 +1172,9 @@ function saveEditor(){
       const nx=el.querySelector('.cnote');
       if(n){ if(nx) nx.textContent=n; else { const d=document.createElement('div'); d.className='cnote'; d.textContent=n; el.appendChild(d); } }
       else if(nx) nx.remove();
+      const cx=el.querySelector('.cmtr'); if(cx) cx.remove();
+      if(metricOn(c)){ const d=document.createElement('div'); d.className='cmtr'; d.title='current → target · benchmark norm'; d.innerHTML=fmtMetric(c.m); el.appendChild(d); }
+      refreshStageStrip(c.stage);
     }
     pushHist(false); updateStatus(); scheduleEdges(); saveSoon();
   }
@@ -1162,6 +1246,16 @@ function initEvents(){
     $$('.kbtn').forEach(x=>x.classList.toggle('on',x===b));
     $('#ePrio').style.display=(b.dataset.k==='idea')?'':'none';
   }));
+  $('#eMetricToggle').addEventListener('click',()=>{
+    const on=$('#eMetricFields').style.display==='flex';
+    $('#eMetricFields').style.display=on?'none':'flex';
+    $('#eMetricToggle').textContent=on?'＋ Metric (actual vs goal)':'－ Metric (actual vs goal)';
+  });
+  $('#eMName').addEventListener('input',()=>{
+    const v=$('#eMName').value.trim().toLowerCase(); if(!v) return;
+    const hit=METRIC_NORMS.find(([k])=>v.includes(k));
+    if(hit&&!$('#eMBm').value.trim()) $('#eMBm').value=hit[1];
+  });
   $('#eTitle').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); saveEditor(); closeEditor(); } });
   $('#eDelete').addEventListener('click',()=>{
     if(editing&&editing.card){ const id=editing.card.id; closeEditor(); deleteCard(id); }
@@ -1276,7 +1370,7 @@ function buildExportSVG(){
   const doc=state.doc;
   ensureRows(doc);
   const visible=doc.rows.filter(r=>r.visible);
-  const pad=44, titleH=62, headH=54, rowGap=20, cardGap=9, cellPad=8;
+  const pad=44, titleH=62, rowGap=20, cardGap=9, cellPad=8;
   const n=doc.stages.length;
   const xOf=c=>pad+c*(COLW+GAP);
   const areaW=pad+n*COLW+(n-1)*GAP+pad;
@@ -1289,8 +1383,9 @@ function buildExportSVG(){
       doc.cards.filter(c=>c.stage===s.id&&c.row===r.id&&kindVisible(c)).forEach(c=>{
         const tl=wrapLines(c.title||'Untitled',COLW-40,TFS,2);
         const nl=c.note?wrapLines(c.note,COLW-40,NFS,5):[];
-        const h=24+tl.length*TLH+(nl.length?7+nl.length*NLH:0)+7;
-        recs.push({c,r,ri,ci,tl,nl,h});
+        const met=!!metricOn(c);
+        const h=24+tl.length*TLH+(nl.length?7+nl.length*NLH:0)+(met?17:0)+7;
+        recs.push({c,r,ri,ci,tl,nl,h,met});
       });
     });
   });
@@ -1298,6 +1393,7 @@ function buildExportSVG(){
   const cellH=(ri,ci)=>{ const cs=cellCards(ri,ci); return cs.length? cellPad*2+cs.reduce((a,x)=>a+x.h+cardGap,0)-cardGap : 74; };
   const rowHs=visible.map((r,ri)=>{ const mc=Math.max(74,...doc.stages.map((s,ci)=>cellH(ri,ci))); return LANE_H+mc; });
   const headTop=pad+titleH;
+  const headH=doc.stages.some(st=>stageMetricList(st.id).length>0)?70:54;
   let yy=headTop+headH+18;
   const rowY=rowHs.map(hh=>{ const v=yy; yy+=hh+rowGap; return v; });
   const H=yy-rowGap+pad;
@@ -1315,7 +1411,7 @@ function buildExportSVG(){
   h+='<text x="'+pad+'" y="36" font-size="26" font-weight="750" fill="#26221b">'+esc(doc.title||'Donor journey')+'</text>';
   const today=new Date().toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'});
   h+='<text x="'+pad+'" y="56" font-size="11.5" fill="#8b8374">Prepared '+esc(today)+' · '+n+' stages · '+doc.cards.length+' cards</text>';
-  h+='<text x="'+pad+'" y="73" font-size="10.5" fill="#a39a86">solid = current state · dashed = idea (priority dot: red high · amber medium · green low)</text>';
+  h+='<text x="'+pad+'" y="73" font-size="10.5" fill="#a39a86">solid = current · dashed = idea (dot: red high · amber med · green low) · metric chips: current → target (norm)</text>';
   let lx=areaW-pad;
   visible.slice().reverse().forEach(r=>{ const nm=esc(r.name), w=nm.length*7.2+46; lx-=w;
     h+='<rect x="'+lx+'" y="27" width="9" height="9" rx="4.5" fill="'+r.hex+'"/><text x="'+(lx+18)+'" y="36" font-size="11.5" font-weight="600" fill="#6f6859">'+nm+'</text>'; });
@@ -1326,7 +1422,10 @@ function buildExportSVG(){
     h+='<circle cx="'+(hx+22)+'" cy="'+cyc+'" r="10.5" fill="#ffffff26"/>';
     h+='<text x="'+(hx+22)+'" y="'+(cyc+4)+'" text-anchor="middle" font-size="11.5" font-weight="700" fill="#ffffffd9">'+(ci+1)+'</text>';
     const sn=wrapLines(s.name,COLW-64,13.5,2);
-    sn.forEach((ln,i)=>{ h+='<text x="'+(hx+40)+'" y="'+(cyc+4.5-((sn.length-1)*8)+(i*16))+'" font-size="13.5" font-weight="700" fill="#ffffff">'+esc(ln)+'</text>'; });
+    const nameY=i=>cyc+4.5-((sn.length-1)*8)+(i*16);
+    sn.forEach((ln,i)=>{ h+='<text x="'+(hx+40)+'" y="'+nameY(i)+'" font-size="13.5" font-weight="700" fill="#ffffff">'+esc(ln)+'</text>'; });
+    const stt=exportStripText(s.id)+endingStripExtra(s.id);
+    if(stt){ h+='<text x="'+(hx+40)+'" y="'+(cyc+(sn.length>1?32:22))+'" font-size="9.5" fill="#d3ccb9">'+esc(stt)+'</text>'; }
   });
   // ---- lanes: separators, labels, empty-cell placeholders
   visible.forEach((r,ri)=>{
@@ -1361,6 +1460,11 @@ function buildExportSVG(){
     x.tl.forEach((ln,i)=>{ h+='<text x="'+tx+'" y="'+(ty+i*TLH)+'" font-size="'+TFS+'" font-weight="700" fill="#26221b">'+esc(i===0?first:ln)+'</text>'; });
     ty+=(x.tl.length-1)*TLH;
     if(x.nl.length){ ty+=7+NLH; x.nl.forEach((ln,i)=>{ h+='<text x="'+tx+'" y="'+(ty+i*NLH)+'" font-size="'+NFS+'" fill="#57503f">'+esc(ln)+'</text>'; }); }
+    if(x.met){ const m=x.c.m;
+      const bits=[m.name, m.cur?m.cur+' →':'', m.tgt||'', m.bm?'· norm '+m.bm:''].filter(Boolean).join(' ');
+      ty+=15;
+      h+='<text x="'+tx+'" y="'+ty+'" font-size="10" fill="#5f5747">'+esc(bits)+'</text>';
+    }
   });
   h+='</svg>';
   return h;

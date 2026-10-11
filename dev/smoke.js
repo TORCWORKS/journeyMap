@@ -97,6 +97,18 @@ function check(name, ok, detail) {
   await page.keyboard.press('Enter'); await page.waitForTimeout(150);
   check('direct editor save persists', (await page.evaluate(() => [...document.querySelectorAll('.card .ctitle')].some(t => t.textContent === 'Edited by click'))));
 
+  // D-007: metrics — chip on card, auto-derived stage strip, suggested-norm autofill
+  await page.locator('.card .cedit').first().click(); await page.waitForTimeout(120);
+  await page.click('#eMetricToggle'); await page.waitForTimeout(60);
+  await page.fill('#eMName', 'Gift reactivation rate');
+  const bmAuto = await page.evaluate(() => document.getElementById('eMBm').value);
+  check('metric benchmark autofills a suggested norm', bmAuto === '12%', 'bm=' + bmAuto);
+  await page.fill('#eMCur', '9%'); await page.fill('#eMTgt', '14%');
+  await page.focus('#eTitle'); await page.keyboard.press('Enter'); await page.waitForTimeout(180);
+  const mres = await page.evaluate(() => ({ chip: document.querySelectorAll('.cmtr').length, stored: state.doc.cards.filter(c => c.m).length, strips: document.querySelectorAll('.mstrip').length }));
+  check('metric chip renders + stores (seeded + added)', mres.stored >= 4 && mres.chip === mres.stored, JSON.stringify(mres));
+  check('stage header strips auto-derive', mres.strips >= 1, 'strips=' + mres.strips);
+
   const dlP = page.waitForEvent('download', { timeout: 8000 }).catch(() => null);
   await page.click('#btnPng');
   const dl = await dlP;
@@ -107,7 +119,7 @@ function check(name, ok, detail) {
   check('autosave restores on reload', (await cards()) === c0 + 1 && (await heads()) === 8, `cards=${await cards()} stages=${await heads()}`);
   check('no console/page errors', errors.length === 0, errors.join(' | ') || 'clean');
 
-  console.log(`\n${20 - failed}/20 smoke checks passed`);
+  console.log(`\n${23 - failed}/23 smoke checks passed`);
   await browser.close();
   process.exit(failed ? 1 : 0);
 })().catch(e => { console.error('FATAL', e); process.exit(1); });
