@@ -104,6 +104,13 @@
 
   /* ---------- workspace / grid ---------- */
   .workspace{flex:1;overflow:auto;position:relative;outline:none}
+  .appfoot{
+    flex:0 0 auto;display:flex;align-items:center;justify-content:center;gap:8px;
+    padding:6px 14px;border-top:1px solid var(--line);background:var(--paper);
+    font-size:10px;font-weight:700;letter-spacing:2px;color:#6f6859;user-select:none;
+  }
+  .appfoot b{color:#6f6859;font-weight:700}
+  .appfoot .af-tag{font-weight:500;letter-spacing:.02em;color:var(--muted);font-size:11px}
   .canvas{padding:30px 40px 80px;position:relative;width:max-content;min-width:100%}
   .grid{display:grid;grid-template-columns:repeat(var(--ncols),var(--colw));column-gap:14px;row-gap:12px;position:relative;align-items:start}
   .edges{position:absolute;left:0;top:0;pointer-events:none;z-index:0;overflow:visible}
@@ -313,7 +320,7 @@
   #mapsItems .act.del:hover{color:var(--rose);background:#fdf0ec}
   #mapsItems .emptylib{padding:14px;color:var(--muted);font-size:12.5px}
   .toast{
-    position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:130;
+    position:fixed;bottom:56px;left:50%;transform:translateX(-50%);z-index:130;
     background:#2a251c;color:#fff;font-size:13px;padding:9px 16px;border-radius:999px;
     box-shadow:var(--shadow-l);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;
   }
@@ -322,7 +329,7 @@
   /* ---------- print ---------- */
   @media print{
     body{background:#fff;overflow:visible}
-    .toolbar,.rowbar,.editor,.toast,.backdrop,.empty,.edges{display:none !important}
+    .toolbar,.rowbar,.editor,.toast,.backdrop,.empty,.edges,.appfoot{display:none !important}
     .workspace{overflow:visible;flex:none}
     .canvas{padding:0;width:auto}
     .grid{width:100%}
@@ -391,6 +398,7 @@
       </div>
     </div>
   </main>
+  <footer class="appfoot"><svg viewBox="0 0 14 14" width="13" height="13" aria-hidden="true"><path d="M4.80,2.29 A5.2,5.2 0 1 0 9.20,2.29" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span><b>TORC WORKS</b></span><span class="af-tag">a single file — nothing leaves this machine</span></footer>
 
   <div id="editor" class="editor" style="display:none">
     <div class="ehead"><span id="eDot" class="eyr" style="background:#bbb"></span><span id="eType" class="etyp">Card</span></div>
