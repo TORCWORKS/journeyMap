@@ -46,6 +46,17 @@ function check(name, ok, detail) {
   const tplIdeas = await page.evaluate(() => state.doc.cards.filter(c => c.kind === 'idea').length);
   check('template loads (annual-giving frame: 6 stages / 13 seed cards)', s0 === 6 && c0 === 13, `stages=${s0} cards=${c0}`);
 
+  // D-024: Frame ⇄ Worked example toggle on template-created maps
+  const tgOn = await page.evaluate(() => document.getElementById('tplToggle').style.display === 'flex');
+  check('template toggle visible on a template map', tgOn);
+  await page.click('#tplToggle [data-v="ex"]'); await page.waitForTimeout(350);
+  const exM = await page.evaluate(() => ({ title: state.doc.title, cards: state.doc.cards.length, ex: !!state.doc._ex }));
+  check('toggle opens the worked example', exM.title.includes('worked example') && exM.cards === 33 && exM.ex, JSON.stringify(exM));
+  await page.click('#tplToggle [data-v="frame"]'); await page.waitForTimeout(350);
+  const frM = await page.evaluate(() => ({ title: state.doc.title, cards: state.doc.cards.length, ex: !!state.doc._ex }));
+  check('toggle returns to the frame', frM.cards === 13 && !frM.ex && frM.title.includes('donor journey'), JSON.stringify(frM));
+  check('no stray maps created by toggling (reuses existing)', (await page.evaluate(() => state.lib.maps.filter(m => m.doc._tpl === 'annual-giving').length)) === 2, 'maps=2 expected');
+
   await page.click('#btnStage'); await page.waitForTimeout(120);
   check('add stage', (await heads()) === s0 + 1);
 
@@ -179,7 +190,7 @@ function check(name, ok, detail) {
   await page.waitForTimeout(250);
   check('template creates a new library map', (await page.evaluate(() => state.lib.maps.length)) >= 2);
   await page.click('#btnMaps'); await page.waitForTimeout(120);
-  await page.evaluate(() => { [...document.querySelectorAll('#mapsItems .mrow')].find(r => r.textContent.includes('Annual giving')).click(); });
+  await page.evaluate(() => { [...document.querySelectorAll('#mapsItems .mrow')].find(r => r.textContent.includes('Annual giving') && !r.textContent.includes('worked example')).click(); });
   await page.waitForTimeout(250);
   check('switching maps restores the other doc', (await page.evaluate(() => state.doc.title.includes('Annual giving'))) && (await heads()) === 7);
   await page.click('#btnMaps'); await page.waitForTimeout(120);
@@ -197,7 +208,7 @@ function check(name, ok, detail) {
   check('start closes back to the current map', (await page.evaluate(() => document.getElementById('empty').style.display === 'none')) && (await page.evaluate(() => document.querySelectorAll('.colhead').length)) >= 1);
   check('no console/page errors (after library)', errors.length === 0, errors.join(' | ') || 'clean');
 
-  console.log(`\n${45 - failed}/45 smoke checks passed`);
+  console.log(`\n${49 - failed}/49 smoke checks passed`);
   await browser.close();
   process.exit(failed ? 1 : 0);
 })().catch(e => { console.error('FATAL', e); process.exit(1); });
