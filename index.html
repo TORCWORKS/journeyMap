@@ -111,6 +111,8 @@
   }
   .appfoot b{color:#6f6859;font-weight:700}
   .appfoot .af-tag{font-weight:500;letter-spacing:.02em;color:var(--muted);font-size:11px}
+  .appfoot{position:relative}
+  .appfoot .af-ver{position:absolute;right:14px;font-size:10px;font-weight:600;letter-spacing:.06em;color:var(--muted)}
   .canvas{padding:30px 40px 80px;position:relative;width:max-content;min-width:100%}
   .grid{display:grid;grid-template-columns:repeat(var(--ncols),var(--colw));column-gap:14px;row-gap:12px;position:relative;align-items:start}
   .edges{position:absolute;left:0;top:0;pointer-events:none;z-index:0;overflow:visible}
@@ -136,6 +138,12 @@
     padding:3px 5px;border-radius:6px;visibility:hidden;
   }
   .colhead:hover .del{visibility:visible}
+  .colhead.stage-over{outline:2px dashed var(--accent);outline-offset:1px}
+  .stageghost{
+    position:fixed;pointer-events:none;z-index:95;background:#fff;border:2px dashed var(--accent);
+    border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;color:var(--accent-2);
+    box-shadow:var(--shadow-m);transform:translate(-50%,-115%);white-space:nowrap;
+  }
   .colhead .del:hover{color:var(--rose);background:#fdf0ec}
 
   .lanehead{
@@ -327,6 +335,7 @@
   .toast.show{opacity:1;transform:translateX(-50%) translateY(-2px)}
 
   /* ---------- print ---------- */
+  @page{margin:12mm}
   @media print{
     body{background:#fff;overflow:visible}
     .toolbar,.rowbar,.editor,.toast,.backdrop,.empty,.edges,.appfoot{display:none !important}
@@ -398,7 +407,7 @@
       </div>
     </div>
   </main>
-  <footer class="appfoot"><svg viewBox="0 0 14 14" width="13" height="13" aria-hidden="true"><path d="M4.80,2.29 A5.2,5.2 0 1 0 9.20,2.29" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span><b>TORC WORKS</b></span><span class="af-tag">a single file — nothing leaves this machine</span></footer>
+  <footer class="appfoot"><svg viewBox="0 0 14 14" width="13" height="13" aria-hidden="true"><path d="M4.80,2.29 A5.2,5.2 0 1 0 9.20,2.29" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span><b>TORC WORKS</b></span><span class="af-tag">a single file — nothing leaves this machine</span><span id="verStamp" class="af-ver"></span></footer>
 
   <div id="editor" class="editor" style="display:none">
     <div class="ehead"><span id="eDot" class="eyr" style="background:#bbb"></span><span id="eType" class="etyp">Card</span></div>
@@ -854,6 +863,7 @@ const TPL_BLURB={
 };
 
 /* ================= state ================= */
+const APP_VERSION='v0.1.14-alpha';
 const state={
   doc:null,
   lib:{maps:[],current:null},
@@ -940,6 +950,13 @@ function updateUndo(){
 /* ================= persistence ================= */
 let saveT=null;
 function saveSoon(){ clearTimeout(saveT); saveT=setTimeout(()=>{ writeCurrentMap(); },350); }
+function flushNow(){
+  // synchronous save for tab-close / backgrounding — no debounce, nothing lost
+  if(!state.doc) return;
+  const e=libEntry(state.lib.current);
+  if(e){ e.doc=state.doc; e.updatedAt=Date.now(); }
+  saveLibNow();
+}
 function writeCurrentMap(){
   if(!state.doc) return;
   const e=libEntry(state.lib.current);
@@ -1097,6 +1114,7 @@ function syncStartHint(){
   const show=!!(state.doc&&state.doc.cards.length===0&&!state.hintDismissed&&$('#empty').style.display==='none');
   h.style.display=show?'flex':'none';
 }
+let stageDrag=null;
 function stageHead(st,idx,stripHtml){
   const h=document.createElement('div'); h.className='colhead'; h.dataset.sid=st.id;
   h.innerHTML='<span class="num">'+(idx+1)+'</span><input class="spname" value="'+esc(st.name)+'" spellcheck="false"><button class="del" title="Delete stage">×</button>'
@@ -1107,7 +1125,54 @@ function stageHead(st,idx,stripHtml){
   inp.addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Enter') inp.blur(); });
   h.querySelector('.del').addEventListener('click',e=>{ e.stopPropagation(); deleteStage(idx); });
   h.addEventListener('click',()=>{ selectStage(st.id); });
+  h.addEventListener('pointerdown',e=>startStageDrag(e,h,idx));
   return h;
+}
+function startStageDrag(e,h,idx){
+  if(e.button!==0||state.connectMode) return;
+  if(e.target.closest('input')||e.target.closest('.del')) return;
+  e.preventDefault();
+  stageDrag={idx,px:e.clientX,py:e.clientY,started:false,ghost:null};
+  h.setPointerCapture(e.pointerId);
+  h.addEventListener('pointermove',onStageMove);
+  h.addEventListener('pointerup',onStageUp);
+  h.addEventListener('pointercancel',onStageUp);
+}
+function onStageMove(e){
+  const d=stageDrag; if(!d) return;
+  if(!d.started){
+    if(Math.hypot(e.clientX-d.px,e.clientY-d.py)<6) return;
+    d.started=true;
+    const r=$$('.colhead')[d.idx].getBoundingClientRect();
+    d.ghost=document.createElement('div'); d.ghost.className='stageghost';
+    d.ghost.textContent=state.doc.stages[d.idx].name;
+    document.body.appendChild(d.ghost);
+  }
+  d.ghost.style.left=e.clientX+'px';
+  d.ghost.style.top=(e.clientY-10)+'px';
+  $$('.colhead').forEach(c=>c.classList.remove('stage-over'));
+  const el=document.elementFromPoint(e.clientX,e.clientY);
+  const over=el&&el.closest('.colhead');
+  if(over&&over!==$$('.colhead')[d.idx]) over.classList.add('stage-over');
+}
+function onStageUp(e){
+  const d=stageDrag; if(!d) return;
+  stageDrag=null;
+  $$('.colhead').forEach(c=>c.classList.remove('stage-over'));
+  if(d.ghost){ d.ghost.remove(); }
+  if(!d.started) return;
+  const hs=$$('.colhead');
+  const others=hs.map((el,i)=>{ const r=el.getBoundingClientRect(); return {i,cx:r.left+r.width/2}; })
+    .filter(o=>o.i!==d.idx);
+  const insertPos=others.filter(o=>o.cx<e.clientX).length;
+  const arr=state.doc.stages.slice();
+  const [st]=arr.splice(d.idx,1);
+  arr.splice(insertPos,0,st);
+  if(arr.some((x,i)=>x.id!==state.doc.stages[i].id)){
+    state.doc.stages=arr;
+    commit();
+    toast('Stage order updated — undo if needed');
+  }
 }
 function colAddEl(){
   const a=document.createElement('div'); a.className='coladd'; a.textContent='+ stage';
@@ -1450,6 +1515,8 @@ function initEvents(){
   });
   $('#zoomSel').addEventListener('change',e=>{ state.zoomMode=e.target.value; applyZoom(); });
   window.addEventListener('resize',()=>{ if(state.zoomMode==='fit') applyZoom(); });
+  window.addEventListener('beforeunload',flushNow);
+  document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushNow(); });
   $('#brandHome').addEventListener('click',()=>{
     if($('#empty').style.display!=='none') return;
     const has=!!state.doc;
@@ -1902,13 +1969,16 @@ function init(){
   renderTplTiles();
   buildTplMenu();
   const lib=loadLib();
-  if(lib){ state.lib=lib; }
+  if(lib&&lib.maps&&lib.maps.length){ state.lib=lib; }
   else {
+    // library missing OR empty → a legacy single-slot doc still migrates (D-021:
+    // the unload flush can write an empty library, and an emptied library must
+    // not strand a pending legacy doc)
     const legacy=loadSaved();
     if(legacy){ legacy.cards=legacy.cards||[]; legacy.edges=legacy.edges||[]; ensureRows(legacy);
       state.lib={maps:[{id:uid(),doc:legacy,updatedAt:Date.now()}],current:null};
       state.lib.current=state.lib.maps[0].id; saveLibNow(); }
-    else { state.lib={maps:[],current:null}; }
+    else { state.lib=lib||{maps:[],current:null}; }
   }
   const h=(location.hash||'').replace('#','');
   const key=TPL_ALIAS[h]||h;
@@ -1918,6 +1988,7 @@ function init(){
   else { setTimeout(()=>applyTemplate('blank'),0); }   // new users start on a blank journey
   setTimeout(applyZoom,50);
   saveLibSoon();
+  const vs=$('#verStamp'); if(vs) vs.textContent=APP_VERSION;
 }
 init();
 window.addEventListener('hashchange',()=>{

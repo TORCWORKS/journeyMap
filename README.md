@@ -65,6 +65,5 @@ This is a single self-contained `index.html` — deploy = put that one file on a
 - No multi-user collaboration or shared links; handover is the JSON file.
 - Undo history is in-memory (not persisted across reloads).
 - Row/lane renames aren't editable after creation (custom lanes only).
-- Stage reordering is by deletion + re-add (no drag-to-reorder columns).
 - Export PNG re-renders the map from data (clean layout) rather than screenshotting the canvas — so the export is a *designed* artifact, not pixel-identical to the screen.
 - No data ingestion or analysis yet — this is deliberately just the mapping slice. The donor-journey *optimizer* concept (leak diagnosis, benchmarked opportunities) is a separate, later layer; see `~/.pi/agent/wiki/plugin-saas/notes/donor-journey-optimizer.md`.
