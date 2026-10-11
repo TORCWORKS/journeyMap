@@ -37,7 +37,8 @@ function check(name, ok, detail) {
   await page.goto(URL + '#annual');
   await page.waitForTimeout(700);
   const s0 = await heads(), c0 = await cards();
-  check('template loads (annual-giving, 7 stages / 32 cards)', s0 === 7 && c0 === 32, `stages=${s0} cards=${c0}`);
+  const tplIdeas = await page.evaluate(() => state.doc.cards.filter(c => c.kind === 'idea').length);
+  check('template loads (annual-giving, 6 stages / 33 cards)', s0 === 6 && c0 === 33, `stages=${s0} cards=${c0}`);
 
   await page.click('#btnStage'); await page.waitForTimeout(120);
   check('add stage', (await heads()) === s0 + 1);
@@ -93,11 +94,11 @@ function check(name, ok, detail) {
   await page.focus('#eTitle');
   await page.keyboard.press('Enter'); await page.waitForTimeout(150);
   const ideaInfo=await page.evaluate(()=>({dom:[...document.querySelectorAll('.card')].filter(c=>c.classList.contains('idea')).length, stored:state.doc.cards.filter(c=>c.kind==='idea').map(c=>c.kind+':'+c.p)}));
-  check('card becomes an Idea (dashed + stored)', ideaInfo.dom === 1 && ideaInfo.stored.length === 1 && ideaInfo.stored[0] === 'idea:1', JSON.stringify(ideaInfo));
+  check('card becomes an Idea (dashed + stored)', ideaInfo.dom === tplIdeas + 1 && ideaInfo.stored.length === tplIdeas + 1 && ideaInfo.stored.includes('idea:1'), JSON.stringify(ideaInfo));
   await page.click('#kindSeg button[data-k="idea"]'); await page.waitForTimeout(150);
-  check('Ideas filter isolates idea cards', (await page.evaluate(() => document.querySelectorAll('.card').length)) === 1);
+  check('Ideas filter isolates idea cards', (await page.evaluate(() => document.querySelectorAll('.card').length)) === tplIdeas + 1);
   await page.click('#kindSeg button[data-k="cur"]'); await page.waitForTimeout(150);
-  check('Current filter excludes ideas', (await page.evaluate(() => document.querySelectorAll('.card').length)) === (c0 + 1 - 1));
+  check('Current filter excludes ideas', (await page.evaluate(() => document.querySelectorAll('.card').length)) === (c0 + 1) - (tplIdeas + 1));
   await page.click('#kindSeg button[data-k="both"]'); await page.waitForTimeout(150);
   check('All filter restores everything', (await page.evaluate(() => document.querySelectorAll('.card').length)) === c0 + 1);
 
@@ -145,7 +146,7 @@ function check(name, ok, detail) {
   await page.waitForTimeout(200);
 
   await page.reload(); await page.waitForTimeout(800);
-  check('autosave restores on reload', (await cards()) === c0 + 1 && (await heads()) === 8, `cards=${await cards()} stages=${await heads()}`);
+  check('autosave restores on reload', (await cards()) === c0 + 1 && (await heads()) === 7, `cards=${await cards()} stages=${await heads()}`);
 
   // D-009: maps library (workspace) — mutates the current map, so it runs after the restore check
   await page.click('#btnMaps'); await page.waitForTimeout(120);
@@ -158,7 +159,7 @@ function check(name, ok, detail) {
   await page.click('#btnMaps'); await page.waitForTimeout(120);
   await page.evaluate(() => { [...document.querySelectorAll('#mapsItems .mrow')].find(r => r.textContent.includes('Annual giving')).click(); });
   await page.waitForTimeout(250);
-  check('switching maps restores the other doc', (await page.evaluate(() => state.doc.title.includes('Annual giving'))) && (await heads()) === 8);
+  check('switching maps restores the other doc', (await page.evaluate(() => state.doc.title.includes('Annual giving'))) && (await heads()) === 7);
   await page.click('#btnMaps'); await page.waitForTimeout(120);
   await page.evaluate(() => { [...document.querySelectorAll('#mapsItems .mrow')].find(r => r.textContent.includes('Annual giving')).querySelector('[data-act="dup"]').click(); });
   await page.waitForTimeout(250);

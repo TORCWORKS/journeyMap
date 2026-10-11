@@ -7,13 +7,13 @@ const CHROME = process.env.CHROME || '/home/pi-agent/.cache/ms-playwright/chromi
 const URL = 'file://' + path.join(__dirname, '..', 'index.html');
 
 const EXPECT = {
-  'annual-giving':     { stages: 7, cards: 32, eps: true  },
-  'change-makers':     { stages: 6, cards: 27, eps: true  },
-  'signature-events':  { stages: 6, cards: 28, eps: true  },
-  'community-events':  { stages: 5, cards: 20, eps: false },
-  'planned-giving':    { stages: 6, cards: 24, eps: false },
-  'corporate-sponsorship': { stages: 6, cards: 28, eps: true  },
-  'leadership-giving': { stages: 6, cards: 24, eps: false },
+  'annual-giving':     { stages: 6, cards: 33, eps: true  },
+  'change-makers':     { stages: 6, cards: 29, eps: true  },
+  'signature-events':  { stages: 6, cards: 30, eps: true  },
+  'community-events':  { stages: 5, cards: 26, eps: true  },
+  'planned-giving':    { stages: 6, cards: 30, eps: true  },
+  'corporate-sponsorship': { stages: 6, cards: 30, eps: true  },
+  'leadership-giving': { stages: 6, cards: 30, eps: true  },
   'blank':             { stages: 5, cards: 0,  eps: false },
 };
 
