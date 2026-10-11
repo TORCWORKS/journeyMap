@@ -44,7 +44,7 @@ function check(name, ok, detail) {
   await page.waitForTimeout(700);
   const s0 = await heads(), c0 = await cards();
   const tplIdeas = await page.evaluate(() => state.doc.cards.filter(c => c.kind === 'idea').length);
-  check('template loads (annual-giving, 6 stages / 33 cards)', s0 === 6 && c0 === 33, `stages=${s0} cards=${c0}`);
+  check('template loads (annual-giving frame: 6 stages / 13 seed cards)', s0 === 6 && c0 === 13, `stages=${s0} cards=${c0}`);
 
   await page.click('#btnStage'); await page.waitForTimeout(120);
   check('add stage', (await heads()) === s0 + 1);
