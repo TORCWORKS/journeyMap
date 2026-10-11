@@ -39,7 +39,7 @@ function check(name, ok, detail) {
   await page.click('#btnUndo'); await page.waitForTimeout(100);
   check('undo restores stage', (await heads()) === s0 + 1);
 
-  await page.click('#btnConnect');
+  await page.keyboard.press('c');   // connect mode via C (toolbar button removed)
   const a = await page.locator('.card').nth(0).boundingBox();
   const b = await page.locator('.card').nth(1).boundingBox();
   await page.mouse.click(a.x + a.width / 2, a.y + 14); await page.waitForTimeout(80);
@@ -117,8 +117,9 @@ function check(name, ok, detail) {
   check('metric chip renders + stores (seeded + added)', mres.stored >= 4 && mres.chip === mres.stored, JSON.stringify(mres));
   check('stage header strips auto-derive', mres.strips >= 1, 'strips=' + mres.strips);
 
+  await page.click('#btnExport'); await page.waitForTimeout(120);
   const dlP = page.waitForEvent('download', { timeout: 8000 }).catch(() => null);
-  await page.click('#btnPng');
+  await page.click('#exportMenu [data-fmt="png"]');
   const dl = await dlP;
   check('PNG export downloads a file', !!dl && (await dl.path()) !== null);
   await page.waitForTimeout(200);
@@ -146,9 +147,14 @@ function check(name, ok, detail) {
   await page.evaluate(() => { [...document.querySelectorAll('#mapsItems .mrow')].find(r => r.textContent.includes('(copy)')).querySelector('[data-act="del"]').click(); });
   await page.waitForTimeout(200);
   check('delete removes the copy', !(await page.evaluate(() => state.lib.maps.some(m => m.doc.title.includes('(copy)')))));
+  // D-010: the logo returns to the start screen (template picker) over the current map
+  await page.click('.brand'); await page.waitForTimeout(200);
+  check('logo opens the start screen over the current map', (await page.evaluate(() => document.getElementById('empty').style.display === '')) && (await page.evaluate(() => document.querySelectorAll('.colhead').length)) >= 1);
+  await page.click('#startClose'); await page.waitForTimeout(150);
+  check('start closes back to the current map', (await page.evaluate(() => document.getElementById('empty').style.display === 'none')) && (await page.evaluate(() => document.querySelectorAll('.colhead').length)) >= 1);
   check('no console/page errors (after library)', errors.length === 0, errors.join(' | ') || 'clean');
 
-  console.log(`\n${30 - failed}/30 smoke checks passed`);
+  console.log(`\n${32 - failed}/32 smoke checks passed`);
   await browser.close();
   process.exit(failed ? 1 : 0);
 })().catch(e => { console.error('FATAL', e); process.exit(1); });
