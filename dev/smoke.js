@@ -47,15 +47,29 @@ function check(name, ok, detail) {
   const tplIdeas = await page.evaluate(() => state.doc.cards.filter(c => c.kind === 'idea').length);
   check('template loads (annual-giving frame: 6 stages / 0 cards)', s0 === 6 && c0 === 0, `stages=${s0} cards=${c0}`);
 
+  // D-035: untouched views are NOT your work — hidden from My maps until touched
+  await page.click('#btnMaps'); await page.waitForTimeout(150);
+  const untouchRows = await page.evaluate(() => [...document.querySelectorAll('#mapsItems .mrow')].filter(r => r.textContent.includes('Annual giving')).length);
+  await page.mouse.click(400, 500); await page.waitForTimeout(80);
+  check('untouched template view absent from My maps', untouchRows === 0, 'rows=' + untouchRows);
+  await page.fill('#mapTitle', 'Annual giving — my journey');   // a real touch: renaming the map
+  await page.waitForTimeout(200);
+  await page.click('#btnMaps'); await page.waitForTimeout(150);
+  const touchRows = await page.evaluate(() => [...document.querySelectorAll('#mapsItems .mrow')].filter(r => r.textContent.includes('Annual giving')).length);
+  await page.mouse.click(400, 500); await page.waitForTimeout(80);
+  check('touched map appears in My maps', touchRows >= 1, 'rows=' + touchRows);
+
   // D-031: the dedicated Frame ⇄ Worked example toggle in the rowbar
   const tgOn = await page.evaluate(() => document.getElementById('tplToggle').style.display === 'flex' && document.querySelector('#tplToggle [data-v="frame"]').classList.contains('on'));
   check('template toggle visible + Frame active on a template map', tgOn);
   await page.click('#tplToggle [data-v="ex"]'); await page.waitForTimeout(350);
   const exM = await page.evaluate(() => ({ title: state.doc.title, cards: state.doc.cards.length, ex: !!state.doc._ex, edges: state.doc.edges.length }));
   check('toggle opens the worked example', exM.title.includes('worked example') && exM.cards === 33 && exM.ex && exM.edges >= 2, JSON.stringify(exM));
+  await page.fill('#mapTitle', 'Example I am working on');   // touch the example too (copy-from work counts)
+  await page.keyboard.press('Enter'); await page.waitForTimeout(150);
   await page.click('#tplToggle [data-v="frame"]'); await page.waitForTimeout(350);
   const frM = await page.evaluate(() => ({ title: state.doc.title, cards: state.doc.cards.length, ex: !!state.doc._ex }));
-  check('toggle returns to the (zero-card) frame', frM.cards === 0 && !frM.ex && frM.title.includes('donor journey'), JSON.stringify(frM));
+  check('toggle returns to the (zero-card) frame', frM.cards === 0 && !frM.ex && frM.title.includes('my journey'), JSON.stringify(frM));
   check('frame + example stay two separate maps', (await page.evaluate(() => state.lib.maps.filter(m => m.doc._tpl === 'annual-giving').length)) === 2, 'maps=2 expected');
 
   // D-034: stale example maps (pre-links) self-heal back to >=2 links on open
@@ -72,6 +86,14 @@ function check(name, ok, detail) {
   check('idea cards carry a visible badge', ideaBadge.includes('rgb(255, 233, 168)') && ideaBadge.includes('rgb(230, 197, 91)'), ideaBadge);
   await page.evaluate(() => { const fr = state.lib.maps.find(m => m.doc._tpl === 'annual-giving' && !m.doc._ex); openMap(fr.id); });   // back to the zero-card frame for the flow below
   await page.waitForTimeout(250);
+
+  // D-035/B1: the ✨ entry reuses the single example instead of duplicating
+  await page.click('#btnTpl'); await page.waitForTimeout(150);
+  await page.evaluate(() => { [...document.querySelectorAll('#tplItems .mrow .act')][0].click(); });
+  await page.waitForTimeout(300);
+  const dedupe = await page.evaluate(() => ({ ex: !!state.doc._ex, one: state.lib.maps.filter(m => m.doc._tpl === 'annual-giving' && m.doc._ex).length }));
+  await page.click('#tplToggle [data-v="frame"]'); await page.waitForTimeout(300);
+  check('✨ reuses the existing example (no duplicates)', dedupe.ex && dedupe.one === 1, JSON.stringify(dedupe));
 
   await page.click('#btnStage'); await page.waitForTimeout(120);
   check('add stage', (await heads()) === s0 + 1);
