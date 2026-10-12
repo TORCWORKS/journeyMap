@@ -251,8 +251,12 @@
   .seg button:last-child{border-right:none}
   .seg button:hover{background:#f4f0e6}
   .seg button.on{background:var(--accent-soft);color:var(--accent-2)}
-  .card.idea{border:1.5px dashed #cdc2ab;border-left:4px solid var(--grow-color,#bbb);background:#fefdf8}
-  .card .cmk{margin-right:4px}
+  .card.idea{border:2px dashed #b8a98a;border-left:4px solid var(--grow-color,#bbb);background:#fdf9e8}
+  .card .cmk{
+    display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;
+    border-radius:5px;background:#ffe9a8;border:1px solid #e6c55b;color:#8a6d0b;
+    font-size:10.5px;line-height:1;margin-right:5px;vertical-align:-1px;
+  }
   .card .pd{display:inline-block;width:9px;height:9px;border-radius:50%;margin-left:7px;vertical-align:1px;border:1.5px solid #fff;box-shadow:0 0 0 1px rgba(60,50,30,.12)}
 
   /* ---------- empty state ---------- */
@@ -1044,6 +1048,9 @@ function openMap(id){
   const e=libEntry(id); if(!e) return;
   writeCurrentMap();                       // flush any edits on the map we're leaving
   state.doc=e.doc; state.lib.current=id;
+  // self-heal: example maps from before the starter links existed get their 2-3
+  // obvious links re-added on open (never removes anything)
+  if(e.doc._ex&&e.doc._tpl&&EXAMPLES[e.doc._tpl]&&e.doc.edges.length<2) tplExampleEdges(e.doc,e.doc._tpl);
   state.sel=null; state.edgeFrom=null; closeEditor();
   state.hist=[]; state.hi=-1; lastSnap=null; updateUndo();   // history is per-session, not per-map
   hideEmpty();
