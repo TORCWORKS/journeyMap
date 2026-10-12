@@ -491,6 +491,28 @@
       <button id="btnLoad" class="mrow" title="Open a saved copy"><span class="mi"><span class="mt">Open a saved copy…</span></span></button>
       <button id="btnMethod" class="mrow" title="Why this approach — the method &amp; sources"><span class="mi"><span class="mt">How it works</span></span></button>
       <button id="btnHelp" class="mrow" title="Help"><span class="mi"><span class="mt">Help</span></span></button>
+      <div style="height:1px;background:#f0eadd;margin:4px 0"></div>
+      <button id="fbOpen" class="mrow" title="Send feedback about this alpha — it opens a pre-filled report"><span class="mi"><span class="mt" style="font-weight:700">✉ Send feedback…</span></span></button>
+    </div>
+  </div>
+
+  <div id="fbModal" class="backdrop" style="display:none">
+    <div class="modal" style="max-width:520px">
+      <style>.fbp{font-size:12.5px;color:var(--muted);margin:0 0 10px;line-height:1.5}
+      .fbopt{display:flex;align-items:flex-start;gap:8px;margin-top:10px;font-size:12.5px;color:var(--ink);cursor:pointer}
+      .fbopt input{flex:0 0 auto;margin-top:2px}
+      .fbwarn{font-size:11px;color:var(--muted)}
+      .fbmeta{margin:6px 0 0;font-style:italic}</style>
+      <h3>Send feedback <span class="fbver">· v</span><span id="fbVer"></span></h3>
+      <p class="fbp">What worked, what broke, what was missing — anything helps. Nothing leaves this machine until you send it.</p>
+      <textarea id="fbText" rows="5" placeholder="e.g. The Annual giving frame was easy to fill, but I couldn't find how to…" spellcheck="false" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;color:var(--ink);resize:vertical"></textarea>
+      <label class="fbopt"><input type="checkbox" id="fbInc" style="accent-color:var(--accent-2)"><span><b>Include my map (as JSON) for debugging</b><br><span class="fbwarn">Repo issues are public — only include what you're comfortable sharing.</span></span></label>
+      <p class="fbmeta" id="fbMeta" style="font-size:11px;color:var(--muted)"></p>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button id="fbCopy" class="btn btn-ghost" style="flex:1">Copy as text</button>
+        <button id="fbSend" class="btn" style="flex:1">Open in GitHub</button>
+        <button id="fbClose" class="btn btn-ghost">Cancel</button>
+      </div>
     </div>
   </div>
 
@@ -1600,6 +1622,45 @@ function initEvents(){
   $('#methodPrint').addEventListener('click',()=>{ document.body.classList.add('method-open'); setTimeout(()=>window.print(),80); });
   $('#methodWrap').addEventListener('click',e=>{ if(e.target===e.currentTarget) closeMethod(); });
   $('#btnHelp').addEventListener('click',()=>$('#modalHelp').style.display='flex');
+  $('#fbOpen').addEventListener('click',()=>{
+    $('#moreMenu').style.display='none';
+    $('#fbVer').textContent=APP_VERSION.replace(/^v/,'');
+    $('#fbInc').checked=false;
+    const t=state.doc?state.doc.title:'No map open';
+    $('#fbMeta').textContent='Map: '+t+' · '+(state.doc?(state.doc.stages.length+' stages · '+state.doc.cards.length+' cards'):'—');
+    $('#fbModal').style.display='flex';
+    $('#fbText').focus();
+  });
+  $('#fbClose').addEventListener('click',()=>$('#fbModal').style.display='none');
+  $('#fbModal').addEventListener('click',e=>{ if(e.target===e.currentTarget) $('#fbModal').style.display='none'; });
+  function feedbackBody(){
+    const f=$('#fbText').value.trim();
+    const d=state.doc;
+    const meta=[];
+    meta.push('App: JourneyMap '+APP_VERSION);
+    meta.push('Sent: '+new Date().toLocaleString());
+    meta.push('Map: '+(d?d.title:'(none)'));
+    if(d) meta.push('Board: '+d.stages.length+' stages · '+d.cards.length+' cards ('+d.cards.filter(c=>c.kind==='idea').length+' ideas) · '+d.edges.length+' links');
+    meta.push('Browser: '+(navigator.userAgent||'').slice(0,120));
+    let body='**JourneyMap alpha feedback**\n\n'+meta.map(x=>'- '+x).join('\n')+'\n\n---\n\n'+(f||'_no comment_');
+    if($('#fbInc').checked&&d){
+      body+='\n\n<details><summary>Map state ('+d.cards.length+' cards)</summary>\n\n<pre lang=\"json\">\n'+JSON.stringify(d).replace(/</g,'&lt;')+'\n</pre>\n</details>';
+    }
+    return body;
+  }
+  $('#fbCopy').addEventListener('click',()=>{
+    const b=feedbackBody();
+    navigator.clipboard.writeText(b).then(()=>toast('Feedback copied — paste it in an email or chat')).
+      catch(()=>{ const ta=document.createElement('textarea'); ta.value=b; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('Feedback copied'); });
+  });
+  $('#fbSend').addEventListener('click',()=>{
+    const b=feedbackBody();
+    const f=$('#fbText').value.trim();
+    const title='Feedback: '+(f.slice(0,60)||(state.doc?state.doc.title:'JourneyMap')).slice(0,60);
+    window.open('https://github.com/TORCWORKS/journeyMap/issues/new?title='+encodeURIComponent(title)+'&body='+encodeURIComponent(b),'_blank');
+    $('#fbModal').style.display='none';
+    toast('GitHub opened — click “Submit new issue” to send');
+  });
   $('#helpClose').addEventListener('click',()=>$('#modalHelp').style.display='none');
   $('#modalHelp').addEventListener('click',e=>{ if(e.target.id==='modalHelp') $('#modalHelp').style.display='none'; });
 
