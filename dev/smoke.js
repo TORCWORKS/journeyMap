@@ -46,16 +46,19 @@ function check(name, ok, detail) {
   const tplIdeas = await page.evaluate(() => state.doc.cards.filter(c => c.kind === 'idea').length);
   check('template loads (annual-giving frame: 6 stages / 0 cards)', s0 === 6 && c0 === 0, `stages=${s0} cards=${c0}`);
 
-  // D-024/D-029: the Frame ⇄ Worked example flip (now a single chip by the title)
-  const tgOn = await page.evaluate(() => document.getElementById('tplFlip').style.display !== 'none' && document.getElementById('tplFlip').textContent.includes('Example'));
-  check('template flip visible on a template map', tgOn);
-  await page.click('#tplFlip'); await page.waitForTimeout(350);
-  const exM = await page.evaluate(() => ({ title: state.doc.title, cards: state.doc.cards.length, ex: !!state.doc._ex, edges: state.doc.edges.length, flip: document.getElementById('tplFlip').textContent }));
-  check('flip opens the worked example', exM.title.includes('worked example') && exM.cards === 33 && exM.ex && exM.edges >= 2, JSON.stringify(exM));
-  await page.click('#tplFlip'); await page.waitForTimeout(350);
+  // D-030: the worked example opens from the landing tile's '✨ Example' chip
+  await page.click('#brandHome'); await page.waitForTimeout(250);
+  await page.evaluate(() => { [...document.querySelectorAll('#tplGrid .tpl')].find(t => t.dataset.tpl === 'annual-giving').querySelector('.t-ex').click(); });
+  await page.waitForTimeout(400);
+  const exM = await page.evaluate(() => ({ title: state.doc.title, cards: state.doc.cards.length, ex: !!state.doc._ex, edges: state.doc.edges.length }));
+  check('tile ✨ Example opens the worked example', exM.title.includes('worked example') && exM.cards === 33 && exM.ex && exM.edges >= 2, JSON.stringify(exM));
+  // back to the frame via My maps (the frame + example stay two separate maps)
+  await page.click('#btnMaps'); await page.waitForTimeout(150);
+  await page.evaluate(() => { [...document.querySelectorAll('#mapsItems .mrow')].find(r => r.textContent.includes('Annual giving') && !r.textContent.includes('worked example')).click(); });
+  await page.waitForTimeout(300);
   const frM = await page.evaluate(() => ({ title: state.doc.title, cards: state.doc.cards.length, ex: !!state.doc._ex }));
-  check('flip returns to the (zero-card) frame', frM.cards === 0 && !frM.ex && frM.title.includes('donor journey'), JSON.stringify(frM));
-  check('no stray maps created by toggling (reuses existing)', (await page.evaluate(() => state.lib.maps.filter(m => m.doc._tpl === 'annual-giving').length)) === 2, 'maps=2 expected');
+  check('back on the (zero-card) frame via My maps', frM.cards === 0 && !frM.ex && frM.title.includes('donor journey'), JSON.stringify(frM));
+  check('frame + example stay two separate maps', (await page.evaluate(() => state.lib.maps.filter(m => m.doc._tpl === 'annual-giving').length)) === 2, 'maps=2 expected');
 
   await page.click('#btnStage'); await page.waitForTimeout(120);
   check('add stage', (await heads()) === s0 + 1);
