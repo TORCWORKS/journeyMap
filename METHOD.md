@@ -1,3 +1,5 @@
+*JourneyMap is published by **Torc Works**. This page and the app are one artifact: a single file, no install, no accounts, and no donor data leaving the machine. The same colophon appears at the foot of the in-app Method sheet and of every exported PNG.*
+
 # Method & sources — why JourneyMap is built the way it is
 
 *This is the canonical text behind the in-app **Method** page. Every choice is either drawn from established practice (marked "canonical") or an explicit, labelled adaptation of ours ("our adaptation"). Nothing is presented as doctrine that isn't.*

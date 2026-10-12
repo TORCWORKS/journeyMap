@@ -41,6 +41,17 @@ function check(name, ok, detail) {
   check('landing tile icons inline', icN === 6, 'icons=' + icN);
   const blankOk = await page.evaluate(() => { const b = document.getElementById('blankJourney'); b.click(); return !!state.doc && state.doc.cards.length === 0; });
   check('blank button starts an empty map', blankOk);
+
+  // D-036: save-failure warning (storage full/blocked must never be silent)
+  await page.evaluate(() => {
+    const orig=localStorage.setItem.bind(localStorage);
+    localStorage.setItem=()=>{ throw new DOMException('QuotaExceededError','QuotaExceededError'); };
+    saveLibNow();
+    localStorage.setItem=orig;
+  });
+  await page.waitForTimeout(120);
+  check('storage failure surfaces a pinned warning', (await page.evaluate(() => document.getElementById('saveWarn').style.display)) === 'flex');
+  await page.click('#saveWarnClose'); await page.waitForTimeout(80);
   await page.goto(URL + '#annual');
   await page.waitForTimeout(700);
   const s0 = await heads(), c0 = await cards();
@@ -94,6 +105,14 @@ function check(name, ok, detail) {
   const dedupe = await page.evaluate(() => ({ ex: !!state.doc._ex, one: state.lib.maps.filter(m => m.doc._tpl === 'annual-giving' && m.doc._ex).length }));
   await page.click('#tplToggle [data-v="frame"]'); await page.waitForTimeout(300);
   check('✨ reuses the existing example (no duplicates)', dedupe.ex && dedupe.one === 1, JSON.stringify(dedupe));
+
+  // D-036: lane renaming (any lane) — double-click the episodes chip
+  await page.evaluate(() => { const chip=[...document.querySelectorAll('.chip')].find(c=>c.textContent.includes('Recurring episodes')); chip.dispatchEvent(new MouseEvent('dblclick',{bubbles:true})); });
+  await page.waitForTimeout(120);
+  await page.fill('#rowChips .lanein', 'Our annual calendar');
+  await page.keyboard.press('Enter'); await page.waitForTimeout(200);
+  const renamed = await page.evaluate(() => ({ chip: [...document.querySelectorAll('.chip')].some(c => c.textContent.includes('Our annual calendar')), row: (state.doc.rows.find(r=>r.id==='eps') || {}).name }));
+  check('lane renames in place (double-click chip)', renamed.chip && renamed.row === 'Our annual calendar', JSON.stringify(renamed));
 
   await page.click('#btnStage'); await page.waitForTimeout(120);
   check('add stage', (await heads()) === s0 + 1);
