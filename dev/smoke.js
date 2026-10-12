@@ -4,8 +4,9 @@ const path = require('path');
 const CHROME = process.env.CHROME || '/home/pi-agent/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome';
 const URL = 'file://' + path.join(__dirname, '..', 'index.html');
 
-let failed = 0;
+let failed = 0; let ran = 0;
 function check(name, ok, detail) {
+  ran++;
   if (!ok) failed++;
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${ok ? '' : '  → ' + (detail || '')}`);
 }
@@ -56,6 +57,21 @@ function check(name, ok, detail) {
   const frM = await page.evaluate(() => ({ title: state.doc.title, cards: state.doc.cards.length, ex: !!state.doc._ex }));
   check('toggle returns to the (zero-card) frame', frM.cards === 0 && !frM.ex && frM.title.includes('donor journey'), JSON.stringify(frM));
   check('frame + example stay two separate maps', (await page.evaluate(() => state.lib.maps.filter(m => m.doc._tpl === 'annual-giving').length)) === 2, 'maps=2 expected');
+
+  // D-034: stale example maps (pre-links) self-heal back to >=2 links on open
+  await page.evaluate(() => {
+    const ex = state.lib.maps.find(m => m.doc._tpl === 'annual-giving' && m.doc._ex);
+    ex.doc.edges = []; saveLibNow();
+    openMap(state.lib.maps.find(m => m.doc._tpl === 'annual-giving' && !m.doc._ex).id);   // leave the frame
+  });
+  await page.waitForTimeout(250);
+  await page.evaluate(() => { const ex = state.lib.maps.find(m => m.doc._tpl === 'annual-giving' && m.doc._ex); openMap(ex.id); });
+  await page.waitForTimeout(300);
+  check('stale example map self-heals to >=2 links on open', (await page.evaluate(() => state.doc.edges.length)) >= 2, 'edges=' + (await page.evaluate(() => state.doc.edges.length)));
+  const ideaBadge = await page.evaluate(() => { const c = document.querySelector('.card.idea .cmk'); const cs = c ? getComputedStyle(c) : null; return cs ? (cs.backgroundColor + '|' + cs.borderColor) : 'none'; });
+  check('idea cards carry a visible badge', ideaBadge.includes('rgb(255, 233, 168)') && ideaBadge.includes('rgb(230, 197, 91)'), ideaBadge);
+  await page.evaluate(() => { const fr = state.lib.maps.find(m => m.doc._tpl === 'annual-giving' && !m.doc._ex); openMap(fr.id); });   // back to the zero-card frame for the flow below
+  await page.waitForTimeout(250);
 
   await page.click('#btnStage'); await page.waitForTimeout(120);
   check('add stage', (await heads()) === s0 + 1);
@@ -256,7 +272,7 @@ function check(name, ok, detail) {
   check('start closes back to the current map', (await page.evaluate(() => document.getElementById('empty').style.display === 'none')) && (await page.evaluate(() => document.querySelectorAll('.colhead').length)) >= 1);
   check('no console/page errors (after library)', errors.length === 0, errors.join(' | ') || 'clean');
 
-  console.log(`\n${55 - failed}/55 smoke checks passed`);
+  console.log(`\n${ran - failed}/${ran} smoke checks passed`);
   await browser.close();
   process.exit(failed ? 1 : 0);
 })().catch(e => { console.error('FATAL', e); process.exit(1); });
