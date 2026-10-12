@@ -248,7 +248,6 @@
   .seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:#fff}
   .seg button{border:none;background:transparent;padding:5px 11px;font-size:12px;font-weight:600;color:#6f6859;cursor:pointer;border-right:1px solid var(--line)}
   .toolbar .kindseg{flex:0 1 auto}
-  #tplFlip{margin-left:8px;padding:4px 10px;font-size:11.5px;white-space:nowrap;flex:0 0 auto}
   .seg button:last-child{border-right:none}
   .seg button:hover{background:#f4f0e6}
   .seg button.on{background:var(--accent-soft);color:var(--accent-2)}
@@ -283,6 +282,8 @@
   .tpl .t-n{display:flex;align-items:center;gap:8px}
   .tpl .t-ic{font-size:16px;line-height:1}
   .tpl .t-d{margin-top:auto;font-size:11.5px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .tpl .t-ex{margin-top:7px;font-size:10.5px;font-weight:650;color:var(--muted);display:flex;align-items:center;gap:3px;cursor:pointer;border-top:1px dashed var(--line);padding-top:6px}
+  .tpl .t-ex:hover{color:var(--accent-2)}
   .tpl:hover{border-color:var(--accent);box-shadow:var(--shadow-m);transform:translateY(-2px)}
   .empty .steps{display:flex;gap:26px;justify-content:center;margin-top:30px;color:var(--muted);font-size:12.5px}
   .empty .steps b{display:block;color:var(--ink);font-size:13px;margin-bottom:2px}
@@ -359,12 +360,6 @@
   <header class="toolbar">
     <div class="brand" id="brandHome" title="Back to the start screen"><div class="logo">JM</div><div class="brand-name">Journey<em>Map</em></div></div>
     <input id="mapTitle" class="maptitle" placeholder="Untitled donor journey" spellcheck="false">
-    <button id="tplFlip" style="display:none" class="btn btn-ghost" title=""></button>
-    <div class="seg kindseg" id="kindSeg" title="Which cards to show">
-      <button data-k="both" class="on">All</button>
-      <button data-k="cur">Current</button>
-      <button data-k="idea">Ideas</button>
-    </div>
     <div class="spacer"></div>
     <button id="btnMaps" class="btn btn-ghost" title="Your saved maps">My maps <span class="icon">▾</span></button>
     <button id="btnTpl" class="btn btn-ghost">Templates <span class="icon">▾</span></button>
@@ -390,6 +385,13 @@
     <div class="spacer"></div>
     <span class="lbl" id="statusLbl"></span>
     <span class="lbl saved" id="savedTag" style="display:none">✓ Saved</span>
+    <span class="sep"></span>
+    <span class="lbl">Show</span>
+    <div class="seg" id="kindSeg" title="Which cards to show">
+      <button data-k="both" class="on">All</button>
+      <button data-k="cur">Current</button>
+      <button data-k="idea">Ideas</button>
+    </div>
 
   </div>
 
@@ -1148,19 +1150,6 @@ function renderAll(){
   scheduleEdges();
   setTimeout(scheduleEdges,360);   // re-draw once the card entrance animation settles
   syncStartHint();
-  syncTplToggle();
-}
-function tplOrigin(){
-  const d=state.doc; if(!d||!d._tpl||!EXAMPLES[d._tpl]) return null;
-  return d._tpl;
-}
-function syncTplToggle(){
-  const tg=$('#tplFlip'); if(!tg) return;
-  const t=tplOrigin(); const ex=!!(state.doc&&state.doc._ex);
-  tg.style.display=t?'inline-flex':'none';
-  if(!t) return;
-  tg.innerHTML=ex?'⤺ Frame':'✨ Example';
-  tg.title=ex?'Back to the empty frame':'Open the fully-written worked example';
 }
 function syncStartHint(){
   const h=$('#startHint'); if(!h) return;
@@ -1491,7 +1480,7 @@ function saveEditor(){
       const el=cardEl(card,getRow(card.row));
       const ag=cell2.querySelector('.addghost');
       if(ag) cell2.insertBefore(el,ag); else cell2.appendChild(el);
-      pushHist(false); updateStatus(); scheduleEdges(); saveSoon(); syncStartHint(); syncTplToggle();
+      pushHist(false); updateStatus(); scheduleEdges(); saveSoon(); syncStartHint();
       selectCard(card.id);
       el.scrollIntoView({block:'nearest'});
     } else {
@@ -1580,14 +1569,6 @@ function initEvents(){
   });
   $('#startClose').addEventListener('click',()=>{ $('#empty').style.display='none'; syncStartHint(); });
   $('#hintClose').addEventListener('click',()=>{ state.hintDismissed=true; syncStartHint(); });
-  $('#tplFlip').addEventListener('click',()=>{
-    const t=tplOrigin(); if(!t) return;
-    const wantEx=!(state.doc&&state.doc._ex);
-    const entry=state.lib.maps.find(m=>m.doc&&m.doc._tpl===t&&!!m.doc._ex===wantEx);
-    if(entry) openMap(entry.id);
-    else applyTemplate(t+(wantEx?'-example':''));
-    syncTplToggle();
-  });
   $('#landingBrand').addEventListener('click',()=>{ $('#empty').style.display='none'; syncStartHint(); });
   $('#btnMethod').addEventListener('click',toggleMethod);
   $('#methodClose').addEventListener('click',closeMethod);
@@ -1961,8 +1942,10 @@ function renderTplTiles(){
     const t=document.createElement('div'); t.className='tpl'; t.dataset.tpl=k;
     t.innerHTML='<div class="t-cat">'+esc(TPL_CAT[k]||'Portfolio')+'</div>'
       +'<div class="t-n"><span class="t-ic">'+(TPL_ICON[k]||'🗂️')+'</span>'+esc(TPL_NAME[k]||k)+'</div>'
-      +'<div class="t-d">'+esc(TPL_BLURB[k]||'')+'</div>';
+      +'<div class="t-d">'+esc(TPL_BLURB[k]||'')+'</div>'
+      +'<div class="t-ex" title="Open the fully-written worked example">✨ Example</div>';
     t.addEventListener('click',()=>applyTemplate(k));
+    t.querySelector('.t-ex').addEventListener('click',ev=>{ ev.stopPropagation(); applyTemplate(k+'-example'); });
     grid.appendChild(t);
   };
   // Landing shows 6 curated portfolios; Change Makers stays in the Templates
