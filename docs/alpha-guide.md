@@ -13,10 +13,13 @@ from disk). Donor data never leaves your computer; nothing is uploaded.
 6. **Export ▾ → PNG image** — the board-ready map.
 
 **The ground rules**
-- **Saved automatically.** You'll see "✓ Saved" in the bar after any change. There is no Save button to hunt for.
+- **Saved automatically.** You'll see "✓ Saved" in the bar after any change. There is no Save button to hunt for. If this browser can't save (storage full or blocked), the app tells you loudly and says to download a copy.
+- **My maps shows your work.** Untouched templates stay hidden until you edit them — the list only fills with maps you've actually worked on.
+- **Rename any lane** (or stage) by double-clicking its name in the bar above.
 - **One machine at a time.** Your maps live in this browser. Moving to another computer: **More ▾ → Download a copy…**, then on the other machine **Open a saved copy…**.
 - **Undo anything:** Undo / Redo in the toolbar, or the "Undo" button on deletion toasts.
-- **Printing to PDF:** Export ▾ → PDF (print), then in the print dialog choose "Save as PDF" and turn off headers/footers if your browser shows them.
+- **Printing to PDF:** Export ▾ → PDF (print), then in the print dialog choose "Save as PDF" and turn off headers/footers.
+- **Feedback:** More ▾ → Send feedback… — or just email Mikey.
 
 **Feedback for Mikey (even three lines helps)**
 1. Which browser did you use?

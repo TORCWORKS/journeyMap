@@ -91,6 +91,12 @@
   .rowbar .lbl.saved{color:var(--accent-2)}
   .starthint{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:6;background:#fff;border:1px solid var(--line-strong);border-radius:12px;box-shadow:var(--shadow-m);padding:10px 14px;font-size:13px;color:#4d4638;display:flex;align-items:center;gap:12px;max-width:620px;line-height:1.45}
   .starthint button{flex:0 0 auto;padding:3px 8px;font-size:12px}
+  .savewarn{
+    position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:7;display:flex;align-items:center;gap:10px;
+    background:#fdf0ec;border:1px solid #e5b8a8;border-radius:12px;box-shadow:var(--shadow-m);
+    padding:10px 14px;font-size:13px;color:#7a3b26;max-width:640px;line-height:1.45;
+  }
+  .savewarn button{padding:3px 8px;font-size:12px}
   .toast .tb{margin-left:10px;border:none;border-radius:6px;background:rgba(255,255,255,.16);padding:3px 10px;color:#fff;font-weight:700;cursor:pointer;font-size:12px}
   .toast .tb:hover{background:rgba(255,255,255,.28)}
   .chip{
@@ -101,6 +107,10 @@
   .chip .cnt{color:var(--muted);font-size:10.5px;font-weight:600}
   #rowChips .chip.epsrow{margin-left:14px;position:relative}
   #rowChips .chip.epsrow::before{content:"";position:absolute;left:-8px;top:18%;height:64%;width:1px;background:var(--line-strong)}
+  .chip .ren{opacity:0;font-size:10px;color:var(--muted);cursor:pointer;transition:opacity .12s}
+  .chip:hover .ren{opacity:.85}
+  .chip .ren:hover{color:var(--accent-2)}
+  .chip .lanein{border:1px solid var(--accent);border-radius:6px;padding:1px 6px;font-size:11.5px;font-weight:600;color:var(--ink);background:#fff;outline:none}
   .chip:hover{border-color:var(--line-strong);box-shadow:0 1px 3px rgba(60,50,30,.08)}
   .chip.off{opacity:.45}
   .chip .x{font-weight:700;color:var(--muted);padding-left:4px;opacity:.8}
@@ -295,6 +305,9 @@
   /* ---------- modal / toast ---------- */
   .backdrop{position:fixed;inset:0;background:rgba(40,34,20,.35);z-index:90;display:flex;align-items:center;justify-content:center}
   .modal{background:#fff;border-radius:16px;box-shadow:var(--shadow-l);max-width:440px;width:calc(100vw - 40px);padding:22px;max-height:80vh;overflow:auto}
+  #modalHelp .modal{display:flex;flex-direction:column;padding:0;overflow:hidden}
+  #modalHelp .modal-body{flex:1 1 auto;overflow:auto;padding:22px 22px 12px}
+  #modalHelp .modal-foot{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 22px 14px;background:#fff;border-top:1px solid var(--line)}
   .modal h3{font-size:16px;margin-bottom:10px}
   .modal ul{list-style:none;display:flex;flex-direction:column;gap:8px;font-size:13px;line-height:1.5;color:#4d4638}
   .modal ul b{color:var(--ink)}
@@ -323,7 +336,10 @@
   .methodsheet .mbody td{border-bottom:1px solid #f0eadd;padding:6px 8px;vertical-align:top}
   .methodsheet .mbody .refs{font-size:12px;color:#6f6859}
   .methodsheet .mbody .refs li{margin:4px 0}
-  .methodsheet .mfoot{padding:12px 22px;border-top:1px solid var(--line);display:flex;gap:8px;justify-content:flex-end;position:sticky;bottom:0;background:#fff}
+  .methodsheet .mfoot{padding:12px 22px;border-top:1px solid var(--line);display:flex;gap:16px;align-items:center;justify-content:space-between;position:sticky;bottom:0;background:#fff}
+  .colophon{display:flex;align-items:center;gap:7px;font-size:11px;line-height:1.35;color:var(--muted);text-align:left}
+  .colophon svg{flex:0 0 auto}
+  .colophon b{font-weight:700;color:#6f6859;letter-spacing:.14em;font-size:10.5px;white-space:nowrap}
   @media print{
     body.method-open .toolbar,body.method-open .rowbar,body.method-open .workspace,body.method-open .editor,body.method-open .toast,body.method-open #methodWrap{display:none !important}
     body.method-open .methodsheet{position:static;transform:none;width:100%;max-height:none;overflow:visible;display:flex;box-shadow:none;border:none}
@@ -402,6 +418,7 @@
   </div>
 
   <main id="workspace" class="workspace" tabindex="0">
+    <div id="saveWarn" class="savewarn" style="display:none"><span>⚠ <b>Couldn't save to this browser</b> (storage full or blocked). Your work is on screen but won't survive a reload — use <b>More ▾ → Download a copy…</b></span><button id="saveWarnClose" class="btn btn-ghost" title="Dismiss">✕</button></div>
     <div id="startHint" class="starthint" style="display:none"><span>👋 <b>Welcome.</b> Your work saves automatically. Start by adding a card (<b>＋ card</b>), or pick a portfolio under <b>Templates</b>.</span><button id="hintClose" class="btn btn-ghost" title="Dismiss">✕</button></div>
     <div id="canvas" class="canvas">
       <div id="grid" class="grid">
@@ -485,7 +502,7 @@
   <div id="exportMenu" class="backdrop" style="display:none;z-index:95;align-items:flex-start;background:transparent">
     <div class="modal" style="width:230px;padding:8px">
       <button class="mrow" data-fmt="png"><span class="mi"><span class="mt">🖼️ PNG image</span></span><span class="ms">board-ready</span></button>
-      <button class="mrow" data-fmt="pdf"><span class="mi"><span class="mt">📄 PDF (print)</span></span><span class="ms">whole map</span></button>
+      <button class="mrow" data-fmt="pdf" title="Whole map, one page per print — in the dialog choose Save as PDF and turn off headers/footers"><span class="mi"><span class="mt">📄 PDF (print)</span></span><span class="ms">whole map</span></button>
     </div>
   </div>
 
@@ -523,6 +540,7 @@
 
   <div id="modalHelp" class="backdrop" style="display:none">
     <div class="modal">
+      <div class="modal-body">
       <h3>Using JourneyMap</h3>
       <ul>
         <li><b>Stages</b> — the columns of the journey, left to right. Rename by clicking, delete with the <span class="keys">×</span>, add stages with <span class="keys">+ Stage</span> or the dashed column at the end.</li>
@@ -536,7 +554,11 @@
         <li><b>Your maps</b> — the <span class="keys">My maps</span> dropdown holds every map you've worked on: click one to open it, or hover for ✎ rename · ⧉ duplicate · × delete. Templates start new maps; “New blank map” starts from scratch. Maps save themselves as you work (up to 24 kept).</li>
         <li><b>Export</b> — the <span class="keys">Export ▾</span> menu offers <b>PNG image</b> (a clean board-ready render) or <b>PDF (print)</b>. <span class="keys">Save file</span> keeps a portable copy.</li>
       </ul>
+      </div>
+    <div class="modal-foot">
+      <div class="colophon"><svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><path d="M4.80,2.29 A5.2,5.2 0 1 0 9.20,2.29" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span><b>TORC WORKS</b> · a single file — nothing leaves this machine</span></div>
       <button class="btn close" id="helpClose">Got it</button>
+    </div>
     </div>
   </div>
 
@@ -544,7 +566,7 @@
     <div class="methodsheet" id="methodSheet">
       <div class="mhead"><h2>Method &amp; sources</h2><button id="methodClose" class="del" title="Close">×</button></div>
       <div class="mbody" id="methodBody"></div>
-      <div class="mfoot"><button id="methodPrint" class="btn btn-ghost">Print / save as PDF</button></div>
+      <div class="mfoot"><div class="colophon"><svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><path d="M4.80,2.29 A5.2,5.2 0 1 0 9.20,2.29" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span><b>TORC WORKS</b> · JourneyMap — no install, no accounts, donor data never leaves this machine</span></div><button id="methodPrint" class="btn btn-ghost">Print / save as PDF</button></div>
     </div>
   </div>
 
@@ -560,7 +582,11 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 let _u=1; const uid=()=>'c'+(Date.now().toString(36))+(''+_u++);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const edgesSvg=document.getElementById('edges');   // connector layer — lives INSIDE #grid so it zooms with the cards
-let toastT=null; let savedT=null;
+let toastT=null; let savedT=null; let saveWarnShown=false;
+function warnSaveFailure(){
+  if(saveWarnShown) return; saveWarnShown=true;
+  const w=$('#saveWarn'); if(w) w.style.display='flex';
+}
 function toast(msg,ms=2200,opt){
   const t=$('#toast'); t.innerHTML='';
   const sp=document.createElement('span'); sp.textContent=msg; t.appendChild(sp);
@@ -986,7 +1012,7 @@ const LSKEY='djm.doc.v1';     // legacy single-slot (migrated once into the libr
 const LIBKEY='djm.lib.v1';     // the maps library: { maps:[{id,doc,updatedAt}], current }
 let libSaveT=null;
 function saveLibSoon(){ clearTimeout(libSaveT); libSaveT=setTimeout(()=>{ try{ localStorage.setItem(LIBKEY,JSON.stringify(state.lib)); }catch(e){} },300); }
-function saveLibNow(){ try{ localStorage.setItem(LIBKEY,JSON.stringify(state.lib)); }catch(e){} }
+function saveLibNow(){ try{ localStorage.setItem(LIBKEY,JSON.stringify(state.lib)); return true; }catch(e){ warnSaveFailure(); return false; } }
 function loadLib(){ try{ const raw=localStorage.getItem(LIBKEY); if(raw){ const l=JSON.parse(raw); if(l&&Array.isArray(l.maps)) return l; } }catch(e){} return null; }
 function libEntry(id){ return state.lib&&state.lib.maps.find(m=>m.id===id); }
 function addMapEntry(doc){
@@ -1031,9 +1057,9 @@ function writeCurrentMap(){
   if(!state.doc) return;
   const e=libEntry(state.lib.current);
   if(e){ e.doc=state.doc; e.updatedAt=Date.now(); }
-  saveLibSoon();
+  const ok=saveLibNow();   // synchronous & honest — the ✓ only appears when it really saved
   const st=$('#savedTag');
-  if(st){ st.style.display='inline'; clearTimeout(savedT); savedT=setTimeout(()=>{ st.style.display='none'; },1600); }
+  if(ok&&st){ st.style.display='inline'; clearTimeout(savedT); savedT=setTimeout(()=>{ st.style.display='none'; },1600); }
 }
 function loadSaved(){ try{ const raw=localStorage.getItem(LSKEY); if(raw){ const d=JSON.parse(raw); if(d&&Array.isArray(d.stages)) return d; } }catch(e){} return null; }  // legacy, migration only
 
@@ -1641,6 +1667,7 @@ function initEvents(){
   });
   $('#startClose').addEventListener('click',()=>{ $('#empty').style.display='none'; syncStartHint(); });
   $('#hintClose').addEventListener('click',()=>{ state.hintDismissed=true; syncStartHint(); });
+  $('#saveWarnClose').addEventListener('click',()=>{ $('#saveWarn').style.display='none'; });
   $('#tplToggle').addEventListener('click',e=>{
     const b=e.target.closest('button'); if(!b) return;
     const t=tplOrigin(); if(!t) return;
@@ -1756,15 +1783,33 @@ function renderRowChips(){
     chip.title=rowQ(r);
     chip.style.background=(r.hex||'#999')+'1f';   // the lane colour as the chip's fill (~12%)
     const laneN=state.doc?state.doc.cards.filter(c=>c.row===r.id).length:0;
-    chip.innerHTML=esc(r.name)
+    chip.innerHTML='<span class="cname">'+esc(r.name)+'</span>'
       +(laneN?'<span class="cnt">· '+laneN+'</span>':'')
+      +'<span class="ren" title="Rename lane">✎</span>'
       +(DEFAULT_ROW_IDS.includes(r.id)?'':'<span class="x" title="Remove lane">×</span>');
+    const ren=chip.querySelector('.ren');
+    ren.addEventListener('click',e=>{ e.stopPropagation(); e.preventDefault(); renameLane(r,chip); });
+    chip.addEventListener('dblclick',e=>{ if(e.target.closest('.x,.ren,.cnt')) return; renameLane(r,chip); });
     chip.addEventListener('click',e=>{
       if(e.target.classList.contains('x')){ deleteRow(r.id); return; }
       r.visible=!r.visible; renderRowChips(); renderAll();
       toast(r.visible?'Shown: '+r.name:'Hidden: '+r.name);
     });
     box.appendChild(chip);
+  });
+}
+function renameLane(r,chip){
+  const nm=chip.querySelector('.cname'); if(!nm) return;
+  const inp=document.createElement('input');
+  inp.className='lanein'; inp.value=r.name; inp.spellcheck=false;
+  inp.style.width=Math.max(70,(r.name.length*7.2)+18)+'px';
+  nm.replaceWith(inp); inp.focus(); inp.select();
+  const done=()=>{ const v=inp.value.trim(); if(v&&v!==r.name){ r.name=v; markTouched(); } renderRowChips(); renderAll(); };
+  inp.addEventListener('blur',done);
+  inp.addEventListener('keydown',ev=>{
+    ev.stopPropagation();
+    if(ev.key==='Enter'){ ev.preventDefault(); inp.blur(); }
+    else if(ev.key==='Escape'){ inp.value=r.name; inp.blur(); }
   });
 }
 function deleteRow(id){
@@ -1908,6 +1953,7 @@ function buildExportSVG(){
   });
   const F="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif";
   let h='<svg xmlns="http://www.w3.org/2000/svg" width="'+(areaW*2)+'" height="'+(H*2)+'" viewBox="0 0 '+areaW+' '+H+'" font-family="'+F+'">';
+  h+='<title>'+esc(doc.title||'Donor journey')+' — published by Torc Works</title>';
   h+=edgeDefs('arwX');
   h+='<rect width="'+areaW+'" height="'+H+'" fill="#fbfaf7"/>';
   h+='<text x="'+pad+'" y="36" font-size="26" font-weight="750" fill="#26221b">'+esc(doc.title||'Donor journey')+'</text>';
@@ -1968,6 +2014,12 @@ function buildExportSVG(){
       h+='<text x="'+tx+'" y="'+ty+'" font-size="10" fill="#5f5747">'+esc(bits)+'</text>';
     }
   });
+  // ---- publisher colophon at the foot where it belongs
+  const fy=H-26, mcx=pad+5.5, mcy=fy+15, mr=5, a1=-115*Math.PI/180, a2=-65*Math.PI/180;
+  h+='<line x1="'+pad+'" y1="'+fy+'" x2="'+(areaW-pad)+'" y2="'+fy+'" stroke="#e9e2d3"/>';
+  h+='<path d="M'+(mcx+mr*Math.cos(a1)).toFixed(2)+','+(mcy+mr*Math.sin(a1)).toFixed(2)+' A'+mr+','+mr+' 0 1 0 '+(mcx+mr*Math.cos(a2)).toFixed(2)+','+(mcy+mr*Math.sin(a2)).toFixed(2)+'" fill="none" stroke="#8b8374" stroke-width="1.7" stroke-linecap="round"/>';
+  h+='<text x="'+(pad+18)+'" y="'+(fy+18.5)+'" font-size="10.5" font-weight="700" letter-spacing="1.7" fill="#6f6859">TORC WORKS</text>';
+  h+='<text x="'+(areaW-pad)+'" y="'+(fy+18.5)+'" text-anchor="end" font-size="10" fill="#a39a86">JourneyMap · no install · no accounts · donor data never leaves this machine</text>';
   h+='</svg>';
   return h;
 }
