@@ -161,6 +161,30 @@ function check(name, ok, detail) {
   await page.click('#methodClose'); await page.waitForTimeout(120);
   check('method page closes', (await page.evaluate(() => document.getElementById('methodWrap').style.display)) === 'none');
 
+  // D-032/D-033: alpha feedback — modal, report assembly, POST-to-inbox + clipboard fallback
+  await page.click('#btnMore'); await page.waitForTimeout(150);
+  await page.click('#fbOpen'); await page.waitForTimeout(150);
+  check('feedback modal opens from More ▾', (await page.evaluate(() => document.getElementById('fbModal').style.display)) === 'flex');
+  await page.fill('#fbText', 'Loved the frame, found the toggle quickly');
+  const fb = await page.evaluate(() => { const b = feedbackBody(); return { hasVer: b.includes(APP_VERSION), hasBoard: b.includes('stages ·'), hasBrowser: b.includes('Browser:'), noMapJson: !b.includes('Map state') }; });
+  check('feedback body has version + board + browser, no map by default', fb.hasVer && fb.hasBoard && fb.hasBrowser && fb.noMapJson, JSON.stringify(fb));
+  await page.click('#fbInc');
+  check('checking "include my map" embeds the JSON (opt-in)', (await page.evaluate(() => feedbackBody().includes('Map state'))));
+  const sent = await page.evaluate(async () => {
+    FEEDBACK_TO = 'tester@example.com';   // activate the POST path for this test
+    window.fetch = (u, o) => Promise.resolve({ ok: true });
+    document.getElementById('fbSend').disabled = false;
+    document.getElementById('fbSend').click();
+    await new Promise(r => setTimeout(r, 200));
+    return { st: document.getElementById('fbStatus').textContent, showsDone: document.getElementById('fbStatus').textContent.includes('thank') };
+  });
+  check('Send posts and confirms (stubbed fetch)', sent.st.includes('Sent — thank you'), JSON.stringify(sent));
+  await page.evaluate(() => { window.fetch = () => Promise.reject(new Error('offline')); document.getElementById('fbSend').disabled = false; document.getElementById('fbSend').click(); });
+  await page.waitForTimeout(200);
+  check('unreachable inbox falls back to clipboard copy', (await page.evaluate(() => document.getElementById('fbStatus').textContent.includes('clipboard'))));
+  await page.click('#fbClose'); await page.waitForTimeout(100);
+  check('feedback modal closes', (await page.evaluate(() => document.getElementById('fbModal').style.display)) === 'none');
+
   // D-007: metrics — chip on card, auto-derived stage strip, suggested-norm autofill
   await page.locator('.card .cedit').first().click(); await page.waitForTimeout(120);
   await page.click('#eMetricToggle'); await page.waitForTimeout(60);
@@ -232,7 +256,7 @@ function check(name, ok, detail) {
   check('start closes back to the current map', (await page.evaluate(() => document.getElementById('empty').style.display === 'none')) && (await page.evaluate(() => document.querySelectorAll('.colhead').length)) >= 1);
   check('no console/page errors (after library)', errors.length === 0, errors.join(' | ') || 'clean');
 
-  console.log(`\n${53 - failed}/53 smoke checks passed`);
+  console.log(`\n${55 - failed}/55 smoke checks passed`);
   await browser.close();
   process.exit(failed ? 1 : 0);
 })().catch(e => { console.error('FATAL', e); process.exit(1); });

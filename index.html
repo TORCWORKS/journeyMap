@@ -504,13 +504,14 @@
       .fbwarn{font-size:11px;color:var(--muted)}
       .fbmeta{margin:6px 0 0;font-style:italic}</style>
       <h3>Send feedback <span class="fbver">· v</span><span id="fbVer"></span></h3>
-      <p class="fbp">What worked, what broke, what was missing — anything helps. Nothing leaves this machine until you send it.</p>
+      <p class="fbp">What worked, what broke, what was missing — anything helps. Nothing leaves this machine until you press <b>Send</b>.</p>
       <textarea id="fbText" rows="5" placeholder="e.g. The Annual giving frame was easy to fill, but I couldn't find how to…" spellcheck="false" style="width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;color:var(--ink);resize:vertical"></textarea>
-      <label class="fbopt"><input type="checkbox" id="fbInc" style="accent-color:var(--accent-2)"><span><b>Include my map (as JSON) for debugging</b><br><span class="fbwarn">Repo issues are public — only include what you're comfortable sharing.</span></span></label>
+      <label class="fbopt"><input type="checkbox" id="fbInc" style="accent-color:var(--accent-2)"><span><b>Include my map (as JSON) for debugging</b><br><span class="fbwarn">Your map details go to the JourneyMap team's inbox — only include what you're comfortable sharing.</span></span></label>
       <p class="fbmeta" id="fbMeta" style="font-size:11px;color:var(--muted)"></p>
+      <p class="fbstatus" id="fbStatus" style="display:none;font-size:12.5px;font-weight:650"></p>
       <div style="display:flex;gap:8px;margin-top:14px">
         <button id="fbCopy" class="btn btn-ghost" style="flex:1">Copy as text</button>
-        <button id="fbSend" class="btn" style="flex:1">Open in GitHub</button>
+        <button id="fbSend" class="btn" style="flex:1">Send feedback</button>
         <button id="fbClose" class="btn btn-ghost">Cancel</button>
       </div>
     </div>
@@ -926,6 +927,9 @@ const TPL_BLURB={
 
 /* ================= state ================= */
 const APP_VERSION='v0.1.14-alpha';
+// Where feedback goes. FormSubmit forwards the POST straight to this inbox
+// (no account, no backend); set to your address to activate 'Send feedback'.
+let FEEDBACK_TO='';
 const state={
   doc:null,
   lib:{maps:[],current:null},
@@ -1547,6 +1551,23 @@ function saveEditor(){
 }
 
 /* ================= toolbar / misc wiring ================= */
+function feedbackBody(){
+    const f=$('#fbText').value.trim();
+    const d=state.doc;
+    const meta=[];
+    meta.push('App: JourneyMap '+APP_VERSION);
+    meta.push('Sent: '+new Date().toLocaleString());
+    meta.push('Map: '+(d?d.title:'(none)'));
+    if(d) meta.push('Board: '+d.stages.length+' stages · '+d.cards.length+' cards ('+d.cards.filter(c=>c.kind==='idea').length+' ideas) · '+d.edges.length+' links');
+    meta.push('Browser: '+(navigator.userAgent||'').slice(0,120));
+    let body='**JourneyMap alpha feedback**\n\n'+meta.map(x=>'- '+x).join('\n')+'\n\n---\n\n'+(f||'_no comment_');
+    if($('#fbInc').checked&&d){
+      body+='\n\n<details><summary>Map state ('+d.cards.length+' cards)</summary>\n\n<pre lang=\"json\">\n'+JSON.stringify(d).replace(/</g,'&lt;')+'\n</pre>\n</details>';
+    }
+    return body;
+  
+}
+
 function initEvents(){
   const ws=$('#workspace');
   // clicking anywhere outside the editor commits what's typed (incl. toolbar)
@@ -1633,21 +1654,6 @@ function initEvents(){
   });
   $('#fbClose').addEventListener('click',()=>$('#fbModal').style.display='none');
   $('#fbModal').addEventListener('click',e=>{ if(e.target===e.currentTarget) $('#fbModal').style.display='none'; });
-  function feedbackBody(){
-    const f=$('#fbText').value.trim();
-    const d=state.doc;
-    const meta=[];
-    meta.push('App: JourneyMap '+APP_VERSION);
-    meta.push('Sent: '+new Date().toLocaleString());
-    meta.push('Map: '+(d?d.title:'(none)'));
-    if(d) meta.push('Board: '+d.stages.length+' stages · '+d.cards.length+' cards ('+d.cards.filter(c=>c.kind==='idea').length+' ideas) · '+d.edges.length+' links');
-    meta.push('Browser: '+(navigator.userAgent||'').slice(0,120));
-    let body='**JourneyMap alpha feedback**\n\n'+meta.map(x=>'- '+x).join('\n')+'\n\n---\n\n'+(f||'_no comment_');
-    if($('#fbInc').checked&&d){
-      body+='\n\n<details><summary>Map state ('+d.cards.length+' cards)</summary>\n\n<pre lang=\"json\">\n'+JSON.stringify(d).replace(/</g,'&lt;')+'\n</pre>\n</details>';
-    }
-    return body;
-  }
   $('#fbCopy').addEventListener('click',()=>{
     const b=feedbackBody();
     navigator.clipboard.writeText(b).then(()=>toast('Feedback copied — paste it in an email or chat')).
@@ -1655,11 +1661,27 @@ function initEvents(){
   });
   $('#fbSend').addEventListener('click',()=>{
     const b=feedbackBody();
-    const f=$('#fbText').value.trim();
-    const title='Feedback: '+(f.slice(0,60)||(state.doc?state.doc.title:'JourneyMap')).slice(0,60);
-    window.open('https://github.com/TORCWORKS/journeyMap/issues/new?title='+encodeURIComponent(title)+'&body='+encodeURIComponent(b),'_blank');
-    $('#fbModal').style.display='none';
-    toast('GitHub opened — click “Submit new issue” to send');
+    const st=$('#fbStatus');
+    const setSt=(txt,color)=>{ st.textContent=txt; st.style.display='block'; st.style.color=color||'var(--accent-2)'; };
+    if(!FEEDBACK_TO){
+      // no inbox configured yet — give the tester the report to hand over directly
+      navigator.clipboard.writeText(b).then(()=>setSt('Feedback copied — thanks! Send it to the team.')).catch(()=>setSt('Feedback ready — copy it and send it on.'));
+      return;
+    }
+    $('#fbSend').disabled=true; setSt('Sending…','var(--muted)');
+    fetch('https://formsubmit.co/ajax/'+FEEDBACK_TO,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({subject:'JourneyMap feedback · '+APP_VERSION, message:b})
+    }).then(r=>{
+      $('#fbSend').disabled=false;
+      if(r.ok){ setSt('Sent — thank you!'); setTimeout(()=>$('#fbModal').style.display='none',900); }
+      else { navigator.clipboard.writeText(b).catch(()=>{}); setSt("Couldn't send — copied to your clipboard instead.",'var(--rose)'); }
+    }).catch(()=>{
+      $('#fbSend').disabled=false;
+      navigator.clipboard.writeText(b).catch(()=>{});
+      setSt('No connection — copied to your clipboard instead.','var(--rose)');
+    });
   });
   $('#helpClose').addEventListener('click',()=>$('#modalHelp').style.display='none');
   $('#modalHelp').addEventListener('click',e=>{ if(e.target.id==='modalHelp') $('#modalHelp').style.display='none'; });
