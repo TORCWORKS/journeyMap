@@ -1038,15 +1038,22 @@ function writeCurrentMap(){
 function loadSaved(){ try{ const raw=localStorage.getItem(LSKEY); if(raw){ const d=JSON.parse(raw); if(d&&Array.isArray(d.stages)) return d; } }catch(e){} return null; }  // legacy, migration only
 
 /* ================= document ops ================= */
+function markTouched(){ if(state.doc) state.doc._touched=true; }
 function commit(){
+  markTouched();
   pushHist(false);
   renderAll();
   scheduleEdges();
   saveSoon();
+  updateMapsMenu();
 }
 function openMap(id){
   const e=libEntry(id); if(!e) return;
-  writeCurrentMap();                       // flush any edits on the map we're leaving
+  const cur=libEntry(state.lib.current);
+  // untouched template views are ephemeral: discarding them on switch keeps the
+  // library free of maps the user only looked at (they recreate identically)
+  if(cur&&cur.doc&&cur.doc._tpl&&!cur.doc._touched){ state.lib.maps=state.lib.maps.filter(m=>m.id!==cur.id); saveLibNow(); }
+  else writeCurrentMap();                  // flush any edits on the map we're leaving
   state.doc=e.doc; state.lib.current=id;
   // self-heal: example maps from before the starter links existed get their 2-3
   // obvious links re-added on open (never removes anything)
@@ -1210,7 +1217,7 @@ function stageHead(st,idx,stripHtml){
   h.innerHTML='<span class="num">'+(idx+1)+'</span><input class="spname" value="'+esc(st.name)+'" spellcheck="false"><button class="del" title="Delete stage">×</button>'
     +(stripHtml?'<div class="mstrip">'+stripHtml+'</div>':'');
   const inp=h.querySelector('.spname');
-  inp.addEventListener('input',()=>{ st.name=inp.value; saveSoon(); });
+  inp.addEventListener('input',()=>{ st.name=inp.value; markTouched(); saveSoon(); });
   inp.addEventListener('change',()=>pushHist(false));
   inp.addEventListener('keydown',e=>{ e.stopPropagation(); if(e.key==='Enter') inp.blur(); });
   h.querySelector('.del').addEventListener('click',e=>{ e.stopPropagation(); deleteStage(idx); });
@@ -1528,7 +1535,7 @@ function saveEditor(){
       const el=cardEl(card,getRow(card.row));
       const ag=cell2.querySelector('.addghost');
       if(ag) cell2.insertBefore(el,ag); else cell2.appendChild(el);
-      pushHist(false); updateStatus(); scheduleEdges(); saveSoon(); syncStartHint(); syncTplToggle();
+      pushHist(false); markTouched(); updateStatus(); scheduleEdges(); saveSoon(); syncStartHint(); syncTplToggle();
       selectCard(card.id);
       el.scrollIntoView({block:'nearest'});
     } else {
@@ -1595,7 +1602,7 @@ function initEvents(){
     if(!e.target.closest('.colhead')&&!e.target.closest('.card')&&!e.target.closest('.tpl')&&state.connectMode){ setConnect(false); }
   });
 
-  $('#mapTitle').addEventListener('input',()=>{ state.doc.title=$('#mapTitle').value; saveSoon(); });
+  $('#mapTitle').addEventListener('input',()=>{ state.doc.title=$('#mapTitle').value; markTouched(); saveSoon(); });
   $('#mapTitle').addEventListener('change',()=>pushHist(false));
   $('#btnStage').addEventListener('click',()=>addStage());
   $('#eLink').addEventListener('click',()=>{
@@ -1802,6 +1809,13 @@ function onKey(e){
     if(e.shiftKey) doRedo(); else doUndo();
   }
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){ e.preventDefault(); doRedo(); }
+}
+function applyExample(key){
+  // one example per template — reuse it if it exists instead of spawning copies
+  const base=key.replace(/-example$/,'');
+  const ex=state.lib.maps.find(m=>m.doc&&m.doc._tpl===base&&m.doc._ex);
+  if(ex){ openMap(ex.id); return; }
+  applyTemplate(key+'-example');
 }
 function applyTemplate(key){
   const doc=TEMPLATES[key]();
@@ -2060,7 +2074,7 @@ function renderTplTiles(){
       +'<div class="t-d">'+esc(TPL_BLURB[k]||'')+'</div>'
       +'<div class="t-ex" title="Open the fully-written worked example">✨ Example</div>';
     t.addEventListener('click',()=>applyTemplate(k));
-    t.querySelector('.t-ex').addEventListener('click',ev=>{ ev.stopPropagation(); applyTemplate(k+'-example'); });
+    t.querySelector('.t-ex').addEventListener('click',ev=>{ ev.stopPropagation(); applyExample(k); });
     grid.appendChild(t);
   };
   // Landing shows 6 curated portfolios; Change Makers stays in the Templates
@@ -2073,7 +2087,7 @@ function renderTplTiles(){
 function updateMapsMenu(){
   const box=$('#mapsItems'); if(!box) return;
   box.innerHTML='';
-  const maps=state.lib?state.lib.maps:[];
+  const maps=(state.lib?state.lib.maps:[]).filter(m=>!m.doc||m.doc._touched||!m.doc._tpl);
   if(!maps.length){ box.innerHTML='<div class="emptylib">No maps yet — start from a template.</div>'; return; }
   maps.forEach(m=>{
     const row=document.createElement('div'); row.className='mrow'+(m.id===state.lib.current?' on':'');
@@ -2119,7 +2133,7 @@ function buildTplMenu(){
     const cat=document.createElement('span'); cat.className='ms'; cat.textContent=TPL_CAT[k]||''; btn.appendChild(cat);
     const ex=document.createElement('button'); ex.className='act'; ex.title='Worked example — the full authored map';
     ex.textContent='✨';
-    ex.addEventListener('click',ev=>{ ev.stopPropagation(); $('#tplMenu').style.display='none'; applyTemplate(k+'-example'); });
+    ex.addEventListener('click',ev=>{ ev.stopPropagation(); $('#tplMenu').style.display='none'; applyExample(k); });
     btn.appendChild(ex);
     btn.addEventListener('click',()=>{ $('#tplMenu').style.display='none'; applyTemplate(k); });
     box.appendChild(btn);
@@ -2139,7 +2153,13 @@ function init(){
   renderTplTiles();
   buildTplMenu();
   const lib=loadLib();
-  if(lib&&lib.maps&&lib.maps.length){ state.lib=lib; }
+  if(lib&&lib.maps&&lib.maps.length){
+    state.lib=lib;
+    // D-035 one-time migration at the LIBRARY level: every map that existed before
+    // the touch-to-persist rule counts as touched, so nothing disappears. A fresh
+    // D-035 map (created after this flag) stays untouched until worked on.
+    if(!lib._v35){ lib.maps.forEach(m=>{ if(m.doc&&m.doc._tpl) m.doc._touched=true; }); lib._v35=true; saveLibNow(); }
+  }
   else {
     // library missing OR empty → a legacy single-slot doc still migrates (D-021:
     // the unload flush can write an empty library, and an emptied library must
