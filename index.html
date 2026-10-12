@@ -84,7 +84,7 @@
 
   /* second toolbar row */
   .rowbar{
-    flex:0 0 auto;min-height:44px;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:6px 14px;
+    flex:0 0 auto;min-height:44px;display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:6px 12px;
     background:var(--paper);border-bottom:1px solid var(--line);z-index:50;
   }
   .rowbar .lbl{font-size:12px;font-weight:600;color:var(--muted);margin-right:2px;letter-spacing:.02em}
@@ -95,12 +95,12 @@
   .toast .tb:hover{background:rgba(255,255,255,.28)}
   .chip{
     display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);
-    border-radius:999px;padding:3px 10px;font-size:11.5px;font-weight:600;cursor:pointer;
+    border-radius:999px;padding:3px 9px;font-size:10.8px;font-weight:600;cursor:pointer;
     background:#fff;color:var(--ink);user-select:none;transition:all .12s;
   }
   .chip .cnt{color:var(--muted);font-size:10.5px;font-weight:600}
-  #rowChips .chip.epsrow{margin-left:18px;position:relative}
-  #rowChips .chip.epsrow::before{content:"";position:absolute;left:-10px;top:18%;height:64%;width:1px;background:var(--line-strong)}
+  #rowChips .chip.epsrow{margin-left:14px;position:relative}
+  #rowChips .chip.epsrow::before{content:"";position:absolute;left:-8px;top:18%;height:64%;width:1px;background:var(--line-strong)}
   .chip:hover{border-color:var(--line-strong);box-shadow:0 1px 3px rgba(60,50,30,.08)}
   .chip.off{opacity:.45}
   .chip .x{font-weight:700;color:var(--muted);padding-left:4px;opacity:.8}
@@ -380,19 +380,21 @@
   </header>
   <div class="rowbar">
     <div id="rowChips" style="display:contents"></div>
+    <div class="seg kindseg" id="kindSeg" title="Which cards to show">
+      <button data-k="both" class="on">All</button>
+      <button data-k="cur">Current</button>
+      <button data-k="idea">Ideas</button>
+    </div>
     <span class="sep"></span>
     <button id="btnAddRow" class="btn btn-ghost" style="padding:5px 10px;font-size:12px"><span class="icon">+</span> custom lane</button>
     <div class="spacer"></div>
     <span class="lbl" id="statusLbl"></span>
     <span class="lbl saved" id="savedTag" style="display:none">✓ Saved</span>
     <span class="sep"></span>
-    <span class="lbl">Show</span>
-    <div class="seg" id="kindSeg" title="Which cards to show">
-      <button data-k="both" class="on">All</button>
-      <button data-k="cur">Current</button>
-      <button data-k="idea">Ideas</button>
+    <div class="seg tplseg" id="tplToggle" style="display:none" title="This template has two versions">
+      <button data-v="frame" class="on">Frame</button>
+      <button data-v="ex">Example</button>
     </div>
-
   </div>
 
   <main id="workspace" class="workspace" tabindex="0">
@@ -1150,6 +1152,19 @@ function renderAll(){
   scheduleEdges();
   setTimeout(scheduleEdges,360);   // re-draw once the card entrance animation settles
   syncStartHint();
+  syncTplToggle();
+}
+function tplOrigin(){
+  const d=state.doc; if(!d||!d._tpl||!EXAMPLES[d._tpl]) return null;
+  return d._tpl;
+}
+function syncTplToggle(){
+  const tg=$('#tplToggle'); if(!tg) return;
+  const t=tplOrigin(); const ex=!!(state.doc&&state.doc._ex);
+  tg.style.display=t?'flex':'none';
+  if(!t) return;
+  tg.querySelector('[data-v=frame]').classList.toggle('on',!ex);
+  tg.querySelector('[data-v=ex]').classList.toggle('on',ex);
 }
 function syncStartHint(){
   const h=$('#startHint'); if(!h) return;
@@ -1480,7 +1495,7 @@ function saveEditor(){
       const el=cardEl(card,getRow(card.row));
       const ag=cell2.querySelector('.addghost');
       if(ag) cell2.insertBefore(el,ag); else cell2.appendChild(el);
-      pushHist(false); updateStatus(); scheduleEdges(); saveSoon(); syncStartHint();
+      pushHist(false); updateStatus(); scheduleEdges(); saveSoon(); syncStartHint(); syncTplToggle();
       selectCard(card.id);
       el.scrollIntoView({block:'nearest'});
     } else {
@@ -1569,6 +1584,16 @@ function initEvents(){
   });
   $('#startClose').addEventListener('click',()=>{ $('#empty').style.display='none'; syncStartHint(); });
   $('#hintClose').addEventListener('click',()=>{ state.hintDismissed=true; syncStartHint(); });
+  $('#tplToggle').addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    const t=tplOrigin(); if(!t) return;
+    const wantEx=b.dataset.v==='ex';
+    if(wantEx===!!(state.doc&&state.doc._ex)) return;
+    const entry=state.lib.maps.find(m=>m.doc&&m.doc._tpl===t&&!!m.doc._ex===wantEx);
+    if(entry) openMap(entry.id);
+    else applyTemplate(t+(wantEx?'-example':''));
+    syncTplToggle();
+  });
   $('#landingBrand').addEventListener('click',()=>{ $('#empty').style.display='none'; syncStartHint(); });
   $('#btnMethod').addEventListener('click',toggleMethod);
   $('#methodClose').addEventListener('click',closeMethod);
