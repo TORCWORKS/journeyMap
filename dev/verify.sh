@@ -3,6 +3,7 @@
 # Usage: bash dev/verify.sh      (exit 0 = green)
 set -euo pipefail
 cd "$(dirname "$0")/.."
+export CHROME="${CHROME:-/home/pi-agent/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome}" # local browser for the e2e gate (this file is private)
 echo "→ JS syntax check"
 awk '/<script>/{f=1;next}/<\/script>/{f=0}f' index.html > /tmp/jm-verify.js
 node --check /tmp/jm-verify.js

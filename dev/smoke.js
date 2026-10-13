@@ -1,6 +1,7 @@
 // E2E smoke test for JourneyMap (single-file app). Run: node dev/smoke.js   (exit 0 = pass)
 const { chromium } = require('playwright-core');
 const path = require('path');
+const fs = require('fs');
 const CHROME = process.env.CHROME || 'chromium';
 const URL = 'file://' + path.join(__dirname, '..', 'index.html');
 
@@ -30,7 +31,8 @@ function check(name, ok, detail) {
   const fresh = await page.evaluate(() => ({ doc: !!state.doc, title: state.doc ? state.doc.title : null, landing: document.getElementById('empty').style.display !== 'none', hint: document.getElementById('startHint').style.display === 'flex' }));
   check('new users default to a blank journey', fresh.doc && fresh.title === 'Untitled donor journey' && !fresh.landing, JSON.stringify(fresh));
   check('Torc Works footer present', (await page.evaluate(() => document.querySelector('.appfoot').textContent.includes('TORC WORKS'))));
-  check('version stamp is set', (await page.evaluate(() => document.getElementById('verStamp').textContent)) === 'v0.1.14-alpha');
+  const verFromSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8').match(/APP_VERSION='([^']+)'/)[1];
+  check('version stamp is set', (await page.evaluate(() => document.getElementById('verStamp').textContent)) === verFromSource);
   check('first-run hint shows on the empty blank map', fresh.hint);
   await page.click('#brandHome'); await page.waitForTimeout(250);
   const tileN = await page.evaluate(() => document.querySelectorAll('#tplGrid .tpl').length);
