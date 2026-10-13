@@ -1,6 +1,6 @@
 # Release plan — public v0.0.1 (first push to GitHub)
 
-Status: **PLAN — awaiting Mikey's confirm.** Nothing below has been executed.
+Status: **PLAN — CONFIRMED 2026-10-12, awaiting execute GO.** Decisions locked: version = v0.0.1 everywhere · LICENSE MIT · public Release v0.0.1 + PNG asset · house docs (DIRECTIVES/WORKFLOW/AGENTS) stay **private** (`git rm --cached` + .gitignore).
 Remote verified empty (`git ls-remote origin` → no refs), so the first push is a clean fast-forward onto a fresh default branch.
 
 ## What ships (tracked tree today)
@@ -12,7 +12,7 @@ Remote verified empty (`git ls-remote origin` → no refs), so the first push is
 
 1. **Version identity (decision 1).** Tag `v0.0.1` + final commit stamping `APP_VERSION='v0.0.1'` (currently `v0.1.14-alpha`). One public story; internal miniversions remain notes in DIRECTIVES.md.
 2. **LICENSE file (decision 2).** None exists. Recommended: **MIT** (permissive, standard for tools others may copy; nonprofit-friendly). Without one, the repo is all-rights-reserved.
-3. **House docs (decision 3).** Recommended: publish all three after ONE neutralization — `AGENTS.md` line 14 references the local credential file path (`~/.pi/credentials/github.txt` + helper); repoint that sentence to "auth handled outside the repo". Neutralized, they read as a public changelog/process and cost nothing. Alternative: `git rm --cached` + `.gitignore` them (repo diverges from local ops docs).
+3. **House docs (decision 3 — CONFIRMED: keep private).** `git rm --cached DIRECTIVES.md WORKFLOW.md AGENTS.md` + add to `.gitignore` (they remain on disk + in local history, just not published). Check `README.md` "Files" section for references to them and drop/repoint.
 4. **README sanitize.** One internal path leaks into the public README ("see `~/.pi/agent/wiki/plugin-saas/…`") → repoint to `docs/` (or drop).
 5. **dev harness sanitize.** `dev/*.js` hardcode a fallback CHROME path (`/home/pi-agent/.cache/…`). Make CHROME env-only (fallback: 'chromium' + hint). No personal paths ship.
 6. **GitHub repo settings.** Description ("Donor journey mapping for nonprofits — single-file, offline, no accounts, donor data never leaves the browser"), homepage `https://torcworks.github.io/journeyMap/`, topics (donor-journey, fundraising, nonprofit, single-file-app).
