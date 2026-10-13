@@ -1,6 +1,6 @@
 # Release plan — public v0.0.1 (first push to GitHub)
 
-Status: **PLAN — CONFIRMED 2026-10-12, awaiting execute GO.** Decisions locked: version = v0.0.1 everywhere · LICENSE MIT · public Release v0.0.1 + PNG asset · house docs (DIRECTIVES/WORKFLOW/AGENTS) stay **private** (`git rm --cached` + .gitignore).
+Status: **EXECUTED 2026-10-12.** Live at https://torcworks.github.io/journeyMap/ (byte-identical to local `index.html`, sha `6bb92ba`); Release v0.0.1 with board preview PNG; repo public, metadata+topics set; favicon added post-launch. Decisions locked: version = v0.0.1 everywhere · LICENSE MIT · public Release v0.0.1 + PNG asset · house docs (DIRECTIVES/WORKFLOW/AGENTS) stay **private** (`git rm --cached` + .gitignore).
 Remote verified empty (`git ls-remote origin` → no refs), so the first push is a clean fast-forward onto a fresh default branch.
 
 ## What ships (tracked tree today)
