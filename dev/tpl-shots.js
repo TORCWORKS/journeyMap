@@ -1,6 +1,6 @@
 const {chromium}=require('playwright-core');
 const path=require('path');
-const CHROME=process.env.CHROME||'/home/pi-agent/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome';
+const CHROME=process.env.CHROME||'chromium';
 const APP='file://'+path.join(__dirname,'..','index.html');
 (async()=>{
   const b=await chromium.launch({executablePath:CHROME});

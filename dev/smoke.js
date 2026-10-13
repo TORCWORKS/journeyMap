@@ -1,7 +1,7 @@
 // E2E smoke test for JourneyMap (single-file app). Run: node dev/smoke.js   (exit 0 = pass)
 const { chromium } = require('playwright-core');
 const path = require('path');
-const CHROME = process.env.CHROME || '/home/pi-agent/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome';
+const CHROME = process.env.CHROME || 'chromium';
 const URL = 'file://' + path.join(__dirname, '..', 'index.html');
 
 let failed = 0; let ran = 0;

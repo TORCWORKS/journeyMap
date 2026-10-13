@@ -7,6 +7,11 @@ package-lock.json.bak
 .playwright-artifacts*/
 *.png.tmp
 
+# house ops docs — kept private (not published)
+DIRECTIVES.md
+WORKFLOW.md
+AGENTS.md
+
 # editors / OS
 .DS_Store
 Thumbs.db
